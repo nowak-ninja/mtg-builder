@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="pl">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#224e3c">
+  <title>MTG Builder - od decklisty do biblioteki</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='2' width='20' height='28' rx='4' fill='%23224e3c'/%3E%3Cpath d='M16 8l6 8-6 8-6-8z' fill='%23e6d6a5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
+</head>
+<body>
+  <header class="topbar screen-only">
+    <a class="brand" href="./"><span class="brand-mark" aria-hidden="true">◇</span> MTG <strong>Builder</strong></a>
+    <span class="eyebrow">COMMANDER / POMOCNIK KOLEKCJONERA</span>
+  </header>
+  <main>
+    <section class="intro screen-only">
+      <p class="eyebrow">MNIEJ SZUKANIA. WIĘCEJ GRANIA.</p>
+      <h1>Twój deck. Prosto z biblioteki.</h1>
+      <p>Wklej listę, pobierz obrazki i zabierz uporządkowany arkusz do swoich kart.</p>
+    </section>
+    <div class="workspace">
+      <aside class="editor screen-only">
+        <form id="deck-form">
+          <div class="section-heading"><h2><span>01</span> Decklista</h2><button class="text-button" id="example" type="button">Wstaw przykład ↗</button></div>
+          <label class="sr-only" for="decklist">Lista kart, jedna karta w wierszu</label>
+          <textarea id="decklist" spellcheck="false" required placeholder="1 Atraxa, Praetors' Voice&#10;1 Sol Ring&#10;1 Cultivate&#10;1 Swords to Plowshares&#10;1 Command Tower&#10;…" aria-describedby="format-help"></textarea>
+          <p class="hint" id="format-help">Jedna karta w wierszu. Nazwa lub liczba i nazwa; także eksport z wydaniem: <code>1 Sol Ring (CMM) 410</code>.</p>
+          <button class="primary-button" id="build" type="submit">Ułóż karty <span aria-hidden="true">→</span></button>
+        </form>
+        <div class="settings">
+          <h2><span>02</span> Arkusz</h2>
+          <label for="density">Karty na stronie A4</label>
+          <select id="density"><option value="30">30 kart · kompaktowo</option><option value="20">20 kart · większe obrazki</option></select>
+          <label class="checkbox"><input type="checkbox" id="basics"> Pokaż też basic landy na końcu</label>
+          <p class="hint">Powtórzenia to jeden obrazek z liczbą sztuk. Drukuj przez <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>P</kbd>, A4, skala 100%, bez nagłówków i stopek przeglądarki.</p>
+        </div>
+        <details class="sorting" open>
+          <summary>Kolejność w Twojej bibliotece</summary>
+          <ol><li>Common</li><li>Uncommon</li><li>Rare + mythic</li><li>Non-basic landy: common + uncommon</li><li>Non-basic landy: rare + mythic</li></ol>
+          <div class="colors" aria-label="Kolejność kolorów: zielony, czarny, niebieski, biały, czerwony, bezkolorowy, wielokolorowy"><b class="mana g">G</b><b class="mana b">B</b><b class="mana u">U</b><b class="mana w">W</b><b class="mana r">R</b><b class="mana c">C</b><b class="mana m">M</b></div>
+          <p class="hint">W każdej grupie kolorów: A-Z. Landy: tylko A-Z. Kolor karty, nie color identity; dla kart dwustronnych liczy się przód.</p>
+        </details>
+        <p class="edition-note">Ilustracja i rzadkość dotyczą pobranego wydania. Podaj kod setu i numer, aby wskazać konkretną wersję. Bez wydania wybiera je Scryfall.</p>
+      </aside>
+      <section class="preview" aria-label="Podgląd arkuszy">
+        <div class="preview-toolbar screen-only"><h2>Twój arkusz</h2><span id="stats">A4 · gotowy do uporządkowania</span></div>
+        <p id="status" class="status screen-only" role="status" aria-live="polite"></p>
+        <div id="issues" class="issues" hidden></div>
+        <div id="sheets"></div>
+        <div id="empty" class="empty screen-only">
+          <div class="empty-cards" aria-hidden="true"><i></i><i></i><i>◇</i></div>
+          <p class="eyebrow">OD LISTY DO KOMPLETNEGO DECKA</p>
+          <h2>Każda karta na swoim miejscu.</h2>
+          <p>Twoje obrazki pojawią się tutaj, posortowane<br>dokładnie tak jak karty w bibliotece.</p>
+          <span class="empty-label">WKLEJ DECKLISTĘ, ABY ZACZĄĆ</span>
+        </div>
+      </section>
+    </div>
+  </main>
+  <footer class="footer screen-only"><span>Lokalnie w Twojej przeglądarce. Bez konta i backendu.</span><span>Dane i obrazki: <a href="https://scryfall.com" target="_blank" rel="noreferrer">Scryfall ↗</a> · Magic: The Gathering © Wizards of the Coast</span></footer>
+</body>
+</html>
