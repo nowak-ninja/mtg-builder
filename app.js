@@ -3,6 +3,7 @@
 const COLOR_ORDER = ["G", "B", "U", "W", "R", "C", "M"];
 const RARITIES = ["common", "uncommon", "rare", "mythic", "special", "bonus"];
 const alphabet = new Intl.Collator("en", { sensitivity: "base" });
+const cardDatabase = typeof module !== "undefined" ? require("./database.js") : CardDatabase;
 
 function parseDeck(text) {
   const entries = new Map();
@@ -64,8 +65,41 @@ function resolveBatch(entries, result) {
     if (result.not_found.some(missing => Object.entries(identifier).every(([key, value]) => missing[key] === value))) return null;
     const card = result.data[index++];
     const names = [card?.name, card?.printed_name, ...(card?.card_faces || []).flatMap(face => [face.name, face.printed_name])].filter(Boolean);
-    return names.some(name => alphabet.compare(name, entry.name) === 0) ? card : null;
+    return card && !cardDatabase.isArtSeries(card) && names.some(name => alphabet.compare(name, entry.name) === 0) ? card : null;
   });
+}
+
+async function loadCardBatch(entries, request) {
+  const editions = entries.filter(entry => entry.set);
+  const found = new Map();
+  if (editions.length) {
+    const result = await request("https://api.scryfall.com/cards/collection", {
+      method: "POST", body: JSON.stringify({ identifiers: editions.map(cardIdentifier) })
+    });
+    resolveBatch(editions, result).forEach((card, index) => found.set(editions[index], card));
+  }
+  const defaults = entries.filter(entry => !entry.set);
+  for (let index = 0; index < defaults.length; index += 10) {
+    const batch = defaults.slice(index, index + 10);
+    const names = batch.map(entry => `!${JSON.stringify(entry.name.split(" // ")[0])}`).join(" or ");
+    const query = new URLSearchParams({ q: `game:paper -layout:art_series prefer:oldest (${names})`, unique: "cards", order: "released", dir: "asc" });
+    const prints = [];
+    let url = `https://api.scryfall.com/cards/search?${query}`;
+    while (url) {
+      let result;
+      try { result = await request(url); }
+      catch (error) {
+        if (error.status === 404 && !prints.length) break;
+        throw error;
+      }
+      prints.push(...result.data);
+      url = result.has_more ? result.next_page : null;
+      if (result.has_more && !url) throw new Error("niepełna lista kart");
+    }
+    const indexByName = cardDatabase.index({ cards: prints });
+    for (const entry of batch) found.set(entry, indexByName.lookup(entry));
+  }
+  return entries.map(entry => found.get(entry) || null);
 }
 
 async function loadRarities(cards, request, cache) {
@@ -73,11 +107,11 @@ async function loadRarities(cards, request, cache) {
   for (let index = 0; index < ids.length; index += 10) {
     const batch = ids.slice(index, index + 10);
     const found = new Map(batch.map(id => [id, new Set()]));
-    const query = new URLSearchParams({ q: `game:paper (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
+    const query = new URLSearchParams({ q: `game:paper -layout:art_series (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
     let url = `https://api.scryfall.com/cards/search?${query}`;
     while (url) {
       const result = await request(url);
-      for (const print of result.data) found.get(print.oracle_id)?.add(print.rarity);
+      for (const print of result.data) if (!cardDatabase.isArtSeries(print)) found.get(print.oracle_id)?.add(print.rarity);
       url = result.has_more ? result.next_page : null;
       if (result.has_more && !url) throw new Error("niepełna lista wydań");
     }
@@ -104,7 +138,7 @@ function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
 }
 
 // Classic scripts also work when index.html is opened directly with file://.
-if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadRarities, cardCaption, previewBounds };
+if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadCardBatch, loadRarities, cardCaption, previewBounds };
 if (typeof document !== "undefined") init();
 
 function init() {
@@ -127,7 +161,7 @@ function init() {
       nextRequest = Date.now() + 31000;
       throw new Error("limit Scryfall - odczekaj 30 sekund");
     }
-    if (!response.ok) throw new Error(`Scryfall: HTTP ${response.status}`);
+    if (!response.ok) throw Object.assign(new Error(`Scryfall: HTTP ${response.status}`), { status: response.status });
     return response.json();
   }
   const make = (tag, className, text) => {
@@ -170,7 +204,7 @@ function init() {
       ? `${localDatabase.count.toLocaleString("pl-PL")} wydań · baza z ${new Date(localDatabase.updatedAt).toLocaleDateString("pl-PL")}. Karty i rzadkości wyszukiwane lokalnie.`
       : "Bez lokalnej bazy - karty i rzadkości pobierane przez API.";
   }
-  const databaseReady = CardDatabase.read().then(result => {
+  const databaseReady = cardDatabase.read().then(result => {
     localDatabase = result;
     $("database-status").textContent = databaseSummary();
     $("download-db").textContent = result ? "Aktualizuj bazę kart" : "Pobierz bazę kart";
@@ -193,7 +227,7 @@ function init() {
     try {
       const metadata = await request("https://api.scryfall.com/bulk-data/default_cards", { signal: downloadController.signal });
       if (metadata.updated_at !== localDatabase?.updatedAt) {
-        localDatabase = await CardDatabase.download(metadata, (bytes, total, count, saving) => {
+        localDatabase = await cardDatabase.download(metadata, (bytes, total, count, saving) => {
           $("database-status").textContent = saving
             ? `Zapisywanie ${count.toLocaleString("pl-PL")} wydań w przeglądarce…`
             : `Pobieranie i przygotowanie: ${(bytes / 1048576).toFixed(1)} / ${(total / 1048576).toFixed(1)} MiB · ${count.toLocaleString("pl-PL")} wydań`;
@@ -343,11 +377,8 @@ function init() {
       const batch = pending.slice(index, index + 75);
       $("status").textContent = `Pobieranie kart: ${Math.min(index + 75, pending.length)}/${pending.length}…`;
       try {
-        const result = await request("https://api.scryfall.com/cards/collection", {
-          method: "POST",
-          body: JSON.stringify({ identifiers: batch.map(cardIdentifier) })
-        });
-        resolveBatch(batch, result).forEach((card, position) => {
+        const result = await loadCardBatch(batch, request);
+        result.forEach((card, position) => {
           const entry = batch[position];
           if (card) cache.set(key(entry), card);
           else problems.push(`${entry.name}${entry.set ? ` (${entry.set.toUpperCase()}) ${entry.number}` : ""}: nie znaleziono pasującej karty. Sprawdź nazwę i wydanie.`);

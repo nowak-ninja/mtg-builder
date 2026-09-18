@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const CardDatabase = require('./database.js');
-const { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadRarities, cardCaption, previewBounds } = require('./app.js');
+const { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadCardBatch, loadRarities, cardCaption, previewBounds } = require('./app.js');
 
 const parsed = parseDeck(`Commander
 1 Atraxa, Praetors' Voice
@@ -67,7 +67,7 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
     calls++;
     if (calls === 1) {
       const query = new URL(url).searchParams;
-      assert.equal(query.get('q'), 'game:paper (oracleid:remora)');
+      assert.equal(query.get('q'), 'game:paper -layout:art_series (oracleid:remora)');
       assert.equal(query.get('unique'), 'prints');
       return { data: [{ oracle_id: 'remora', rarity: 'rare' }], has_more: true, next_page: 'page-2' };
     }
@@ -92,6 +92,8 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
 
   const printing = (overrides = {}) => ({ object: 'card', id: 'old', oracle_id: 'remora', name: 'Mystic Remora', rarity: 'common', set: 'ice', collector_number: '87', games: ['paper'], released_at: '1995-06-03', colors: ['U'], type_line: 'Enchantment', oracle_text: 'Not stored', prices: { usd: '1' }, ...overrides });
   const snapshot = { updatedAt: '2026-09-18', cards: [
+    printing({ id: 'art', layout: 'art_series', type_line: 'Card // Card', name: 'Mystic Remora // Mystic Remora', set: 'aart', released_at: '1990-01-01', card_faces: [{ name: 'Mystic Remora', type_line: 'Card' }] }),
+    printing({ id: 'legacy-art', type_line: 'Card // Card', set: 'legacy', released_at: '1990-01-01' }),
     printing(), printing({ id: 'new', set: 'dmr', rarity: 'rare', released_at: '2023-01-13' }),
     printing({ id: 'digital', set: 'ana', rarity: 'uncommon', games: ['arena'], released_at: '2027-01-01' }),
     printing({ id: 'dfc', oracle_id: 'delver', name: 'Delver of Secrets // Insectile Aberration', card_faces: [{ name: 'Delver of Secrets', colors: ['U'], type_line: 'Creature', image_uris: { normal: 'https://cards.scryfall.io/front.jpg' } }, { name: 'Insectile Aberration' }] })
@@ -99,9 +101,37 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
   assert.equal(snapshot.cards[0].oracle_text, undefined);
   assert.equal(snapshot.cards[0].prices, undefined);
   const local = CardDatabase.index(snapshot);
-  assert.equal(local.lookup({ name: 'mystic remora' }).id, 'new');
+  assert.equal(local.lookup({ name: 'mystic remora' }).id, 'old');
   assert.equal(local.lookup({ name: 'Mystic Remora', set: 'dmr', number: '87' }).id, 'new');
   assert.equal(local.lookup({ name: 'missing card' }), undefined);
+  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'aart', number: '87' }), undefined);
+  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'legacy' }), undefined);
+  assert.equal(snapshot.cards[0].layout, 'art_series');
+  assert.equal(resolveBatch([{ name: 'Mystic Remora' }], { data: [snapshot.cards[0]], not_found: [] })[0], null);
+  const onlineEntries = [{ name: 'Mystic Remora' }, { name: 'Missing' }, { name: 'Mystic Remora', set: 'dmr', number: '87' }];
+  const online = await loadCardBatch(onlineEntries, async (url, options) => {
+    if (options) return { data: [printing({ id: 'new', set: 'dmr' })], not_found: [] };
+    const q = new URL(url).searchParams;
+    assert.match(q.get('q'), /game:paper -layout:art_series prefer:oldest/);
+    assert.match(q.get('q'), /!"Mystic Remora" or !"Missing"/);
+    assert.equal(q.get('unique'), 'cards');
+    return { data: [printing(), snapshot.cards[0]], has_more: false };
+  });
+  assert.deepEqual(online.map(card => card?.id || null), ['old', null, 'new']);
+  assert.deepEqual(await loadCardBatch([{ name: 'Missing' }], async () => {
+    throw Object.assign(new Error('Not found'), { status: 404 });
+  }), [null]);
+  await assert.rejects(loadCardBatch([{ name: 'Mystic Remora' }], async () => {
+    throw Object.assign(new Error('Server unavailable'), { status: 503 });
+  }), /Server unavailable/);
+  let searchCalls = 0;
+  await loadCardBatch(Array.from({ length: 11 }, (_, i) => ({ name: `Card ${i}` })), async () => {
+    searchCalls++;
+    return { data: [], has_more: false };
+  });
+  assert.equal(searchCalls, 2);
+  console.log('OK: oldest printing locally/online, explicit editions, Art Series including legacy snapshots, missing names and API failures.');
+
   assert.equal(local.lookup({ name: 'Insectile Aberration' }).id, 'dfc');
   assert.deepEqual(local.rarities.get('remora'), ['common', 'rare']);
   assert.equal(local.lookup({ name: 'Delver of Secrets' }).card_faces[0].image_uris.normal, 'https://cards.scryfall.io/front.jpg');

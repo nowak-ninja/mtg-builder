@@ -2,6 +2,8 @@
 
 const CardDatabase = (() => {
   const normalize = name => name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
+  // Older snapshots did not store layout; Art Series still have the distinctive type line.
+  const isArtSeries = card => card.layout === "art_series" || /^Card(?:\s*\/\/\s*Card)?$/.test(card.type_line || "");
   let database;
 
   function open() {
@@ -46,7 +48,7 @@ const CardDatabase = (() => {
       throw new Error("Niepoprawny rekord w bazie Scryfall.");
     }
     const result = {};
-    for (const key of ["id", "oracle_id", "name", "printed_name", "set", "collector_number", "rarity", "colors", "type_line", "released_at", "lang", "games"]) {
+    for (const key of ["id", "oracle_id", "name", "printed_name", "set", "collector_number", "rarity", "colors", "type_line", "released_at", "lang", "games", "layout"]) {
       if (card[key] !== undefined) result[key] = card[key];
     }
     if (card.image_uris?.normal) result.image_uris = { normal: card.image_uris.normal };
@@ -63,6 +65,7 @@ const CardDatabase = (() => {
     const byEdition = new Map();
     const rarities = new Map();
     for (const card of snapshot.cards) {
+      if (isArtSeries(card)) continue;
       const names = [card.name, card.printed_name, ...(card.card_faces || []).flatMap(face => [face.name, face.printed_name])];
       for (const name of new Set(names.filter(Boolean).map(normalize))) {
         if (!byName.has(name)) byName.set(name, []);
@@ -81,9 +84,9 @@ const CardDatabase = (() => {
         const candidates = entry.set && entry.number
           ? [byEdition.get(`${entry.set}/${entry.number}`)].filter(Boolean)
           : (byName.get(normalize(entry.name)) || []).filter(card => !entry.set || card.set === entry.set);
-        // Prefer paper cards, then the newest printing; collector number breaks date ties.
+        // Prefer paper cards, then the oldest printing; collector number breaks date ties.
         return candidates.sort((a, b) => Number(b.games?.includes("paper")) - Number(a.games?.includes("paper"))
-          || (b.released_at || "").localeCompare(a.released_at || "")
+          || (a.released_at || "9999").localeCompare(b.released_at || "9999")
           || a.collector_number.localeCompare(b.collector_number, "en", { numeric: true }))[0];
       }
     };
@@ -132,7 +135,7 @@ const CardDatabase = (() => {
     return index(snapshot);
   }
 
-  return { read, download, compact, index, jsonLines };
+  return { read, download, compact, index, jsonLines, isArtSeries };
 })();
 
 if (typeof module !== "undefined") module.exports = CardDatabase;

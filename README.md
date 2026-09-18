@@ -34,10 +34,10 @@ Baza należy do konkretnej przeglądarki i adresu strony. Plik HTML, localhost i
 - Common → uncommon → rare + mythic. W każdej grupie: G, B, U, W, R, bezkolorowe, wielokolorowe, potem A-Z.
 - Następnie non-basic landy common + uncommon A-Z, potem rare + mythic A-Z, bez podziału na kolory. Basic landy są domyślnie pokazywane na końcu; można je wyłączyć checkboxem.
 - Używany jest kolor karty, nie jej commander color identity. Dla kart dwustronnych wyświetlany i klasyfikowany jest przód. Spell z landem na odwrocie pozostaje w grupie spelli.
-- Obrazek i miejsce w kolejności odpowiadają konkretnemu wydaniu. Bez setu baza lokalna wybiera najnowsze wydanie z preferencją dla papieru (remisy rozstrzyga numer kolekcjonerski); w trybie API wersję wybiera Scryfall. Może się różnić od posiadanej karty.
+- Obrazek i miejsce w kolejności odpowiadają konkretnemu wydaniu. Bez setu wybierane jest najstarsze wydanie, z preferencją dla papieru. API używa `prefer:oldest`, a baza lokalna daty premiery (remisy rozstrzyga numer kolekcjonerski). Art Series są wykluczone z wyszukiwania, także przy wskazaniu konkretnego wydania. Filtr działa również na wcześniej pobranej bazie, bez ponownego importu. Może się różnić od posiadanej karty.
 - Checkbox **Sprawdzaj wszystkie rzadkości karty** jest domyślnie zaznaczony. Podpis bez kodu edycji pokazuje wszystkie rzadkości papierowych wydań karty, np. `Common / Rare / Mythic` z symbolem koloru, połączone według Oracle ID. Po odznaczeniu pokazuje tylko rzadkość wydania na obrazku i nie wykonuje skanowania API. Gdy sprawdzanie jest włączone, ale historia jest niedostępna, podpis wyraźnie mówi „tylko to wydanie”.
 - Lista jest zapisywana wyłącznie lokalnie w przeglądarce. Bez pobranej bazy zapytania o karty trafiają bezpośrednio do publicznego API Scryfall, a wyniki są buforowane w pamięci do odświeżenia strony.
-- Pobieranie odbywa się paczkami do 75 kart, z odstępem co najmniej 550 ms. Odpowiedź HTTP 429 przerywa pobieranie i wymusza przerwę przed ponowną próbą.
+- W trybie API konkretne wydania są pobierane paczkami do 75 kart, a najstarsze wydania wyszukiwane po 10 nazw. Wszystkie zapytania mają odstęp co najmniej 550 ms. Odpowiedź HTTP 429 przerywa pobieranie i wymusza przerwę przed ponowną próbą.
 
 ## Drukowanie
 
