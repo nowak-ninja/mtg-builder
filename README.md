@@ -32,9 +32,11 @@ Baza należy do konkretnej przeglądarki i adresu strony. Plik HTML, localhost i
 
 Kliknij **Wczytaj kolekcję CSV** po lewej i wybierz eksport Deckstats z kolumnami `amount` i `card_name`. Import jest lokalny: plik nie trafia na serwer ani do repozytorium. Nazwy kart są zapisywane w IndexedDB i odczytywane przy kolejnych wizytach. Następny import zastępuje kolekcję; błędny plik lub nieudany zapis zachowuje poprzednią. Kolekcja i baza Scryfall są przechowywane osobno - ich aktualizacje nie nadpisują się wzajemnie.
 
-Dopasowanie ignoruje edycję, foil, wielkość liter i akcenty; uwzględnia nazwy obu stron kart. Wystarczy co najmniej jedna posiadana sztuka. Nie sprawdzamy niedoboru liczby kopii. Bez wczytanej kolekcji karty nie są oznaczane jako brakujące.
+Dopasowanie ignoruje edycję, foil, wielkość liter i akcenty; uwzględnia nazwy obu stron kart. Wystarczy co najmniej jedna posiadana sztuka. Nie sprawdzamy niedoboru liczby kopii. Bez wczytanej kolekcji karty nie są automatycznie oznaczane jako brakujące.
 
 Brakujące karty mają wyszarzony obrazek z przekreśleniem i dużym **P**, również na wydruku. Oznaczenie obejmuje tylko obrazek; nazwa pod nim i pasek nad nim pozostają czytelne. Linki i podgląd pozostają aktywne. Po prawej pojawia się lista do skopiowania w formacie `liczba nazwa`, z ilościami z decka; uwzględnia też ukryte basic landy. Na małym ekranie panel jest pod arkuszami. Lista dotyczy kart rozpoznanych przez aplikację - błędy nazw lub pobierania nadal wymagają sprawdzenia komunikatów. Import od razu aktualizuje gotowy arkusz.
+
+Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiadaną kartę jako proxy, także bez importowania kolekcji. Trafia ona na tę samą listę po prawej i otrzymuje oznaczenie P. Odznaczenie usuwa ręczny wybór. Karty brakujące w kolekcji mają zaznaczony, nieaktywny checkbox - ich oznaczenie wynika z kolekcji. Ręczne wybory są zapamiętywane po nazwie w przeglądarce, także po odświeżeniu i zmianie decklisty. Checkboxy nie są drukowane.
 
 ## Lista i sortowanie
 

@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const CardDatabase = require('./database.js');
-const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, cardCaption, paginateCards, previewBounds } = require('./app.js');
+const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, cardCaption, isProxy, paginateCards, previewBounds } = require('./app.js');
 
 const parsed = parseDeck(`Commander
 1 Atraxa, Praetors' Voice
@@ -185,3 +185,13 @@ assert(Collection.index(Collection.parse('amount,card_name\n1,Insectile Aberrati
 for (const invalid of ['wrong,header\n1,Sol Ring', 'amount,card_name', 'amount,card_name\n-1,Sol Ring', 'amount,card_name\n1,"Sol Ring', 'amount,card_name\n1,Sol Ring,extra', 'amount,card_name\n1,"Sol Ring"oops']) assert.throws(() => Collection.parse(invalid));
 assert.equal(Collection.index(Collection.parse('amount,card_name\n0,Sol Ring')).count, 0);
 console.log('OK: collection CSV quotes, commas, multiline fields, BOM, duplicates, zero counts, DFC names, edition-independent matching and invalid imports.');
+
+const selectedProxies = new Set(['Sol Ring']);
+assert(isProxy({ name: 'Sol Ring' }, null, selectedProxies));
+assert(!isProxy({ name: 'Mystic Remora' }, null, selectedProxies));
+assert(isProxy({ name: 'Sol Ring' }, { has: () => true }, selectedProxies));
+assert(isProxy({ name: 'Mystic Remora' }, { has: () => false }, selectedProxies));
+selectedProxies.delete('Sol Ring');
+assert(!isProxy({ name: 'Sol Ring' }, { has: () => true }, selectedProxies));
+assert(isProxy({ name: 'Sol Ring' }, { has: () => false }, selectedProxies));
+console.log('OK: manual proxies without collection, owned-card override, deselection and automatic missing-card proxies.');
