@@ -59,17 +59,19 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .sheet-heading { padding-bottom: 13px; border-bottom: 1px solid #e3e6df; margin-bottom: 14px; }.sheet-heading strong { color: #334b3a; }.sheet-footer { margin-top: 15px; font-size: 8px; }
 .card-grid { display: grid; grid-template-columns: repeat(var(--columns, 6), minmax(0, 1fr)); gap: 12px 8px; align-items: start; }
 .card { margin: 0; min-width: 0; position: relative; break-inside: avoid; page-break-inside: avoid; }
+.card-link { display: block; border-radius: 5px; }
+.card-preview { position: fixed; z-index: 100; pointer-events: none; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 32px #0006; }
 .card img { width: 100%; aspect-ratio: 488 / 680; object-fit: contain; display: block; border-radius: 5px; background: #f0f1eb; font-size: 10px; }
-.card figcaption { padding-top: 4px; }
-.card-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 650; font-size: 10px; line-height: 1.15; height: 23px; overflow-wrap: anywhere; }
-.card-meta { display: block; font-size: 8px; color: #63735f; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top: 2px; }
-.quantity { position: absolute; top: 4px; right: 4px; background: #fff; border: 1px solid #6f8067; border-radius: 4px; padding: 2px 5px; font-size: 10px; font-weight: bold; }
+.card figcaption { padding-top: 4px; min-height: 38px; }
+.card-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-weight: 650; font-size: 10px; line-height: 1.15; max-height: 23px; overflow-wrap: anywhere; }
+.card-meta { display: block; font-size: 8px; color: #63735f; line-height: 1.15; margin-top: 2px; }
+.quantity { position: absolute; top: 4px; right: 4px; background: #fff; border: 1px solid #6f8067; border-radius: 4px; padding: 2px 5px; font-size: 10px; font-weight: bold; pointer-events: none; }
 .image-failed img { border: 1px dashed #b17e59; }
 .issues { padding: 12px 16px; background: #fff3df; border: 1px solid #e8c995; border-radius: 6px; font-size: 12px; line-height: 1.6; margin-bottom: 16px; overflow-wrap: anywhere; }.issues ul { padding-left: 18px; margin: 5px 0; }
 .footer { display: flex; justify-content: space-between; gap: 20px; padding: 21px 4.5%; border-top: 1px solid #dce1d7; color: #778272; font-size: 10px; line-height: 1.7; }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
-@media (max-width: 1000px) { .workspace { grid-template-columns: 270px minmax(0,1fr); gap: 20px; }.editor { padding: 18px; }.sheet { padding: 12px; }.card-grid { gap: 10px 5px; }.card-name { font-size: 8px; height: 20px; }.card-meta { font-size: 7px; }.empty { min-height: 600px; } }
-@media (max-width: 720px) { .topbar { height: 66px; }.topbar > .eyebrow { display: none; }main { padding-top: 24px; }.workspace { display: block; }.editor { margin-bottom: 28px; }textarea { min-height: 190px; }.empty { min-height: 400px; }.footer { flex-direction: column; gap: 6px; }.card-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }.card-name { font-size: 11px; height: 26px; }.card-meta { font-size: 9px; }.sheet-heading { font-size: 9px; }.preview-toolbar { flex-wrap: wrap; } }
+@media (max-width: 1000px) { .workspace { grid-template-columns: 270px minmax(0,1fr); gap: 20px; }.editor { padding: 18px; }.sheet { padding: 12px; }.card-grid { gap: 10px 5px; }.card-name { font-size: 8px; max-height: 20px; }.card-meta { font-size: 7px; }.empty { min-height: 600px; } }
+@media (max-width: 720px) { .topbar { height: 66px; }.topbar > .eyebrow { display: none; }main { padding-top: 24px; }.workspace { display: block; }.editor { margin-bottom: 28px; }textarea { min-height: 190px; }.empty { min-height: 400px; }.footer { flex-direction: column; gap: 6px; }.card-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }.card-name { font-size: 11px; max-height: 26px; }.card-meta { font-size: 9px; }.sheet-heading { font-size: 9px; }.preview-toolbar { flex-wrap: wrap; } }
 @page { size: A4 portrait; margin: 8mm; }
 @media print {
   :root, body { background: white; color: black; }
@@ -80,9 +82,9 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   .sheet-heading { font-size: 8pt; height: 8mm; padding: 0 0 2mm; margin: 0; align-items: center; border: 0; }
   .card-grid { grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); gap: 2mm; }
   .card img { border-radius: 1mm; }
-  .card figcaption { height: 7.5mm; padding-top: .7mm; }
-  .card-name { font-size: 6.5pt; line-height: 1.1; height: 5mm; }
-  .card-meta { font-size: 5.2pt; line-height: 1; margin: 0; color: #333; }
+  .card figcaption { height: 9.2mm; min-height: 0; padding-top: .6mm; }
+  .card-name { font-size: 6.2pt; line-height: 1.05; max-height: 4.6mm; }
+  .card-meta { font-size: 5pt; line-height: 1.05; margin-top: .25mm; color: #333; }
   .quantity { top: 1mm; right: 1mm; padding: .3mm 1mm; font-size: 7pt; color: black; }
   .sheet-footer { font-size: 6pt; margin: 2mm 0 0; height: 3mm; }
   .issues { background: white; color: black; border: 1px solid black; break-after: page; }

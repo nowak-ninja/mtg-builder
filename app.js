@@ -1,7 +1,7 @@
 "use strict";
 
 const COLOR_ORDER = ["G", "B", "U", "W", "R", "C", "M"];
-const GROUPS = ["Common", "Uncommon", "Rare + mythic", "Landy C + U", "Landy R + M", "Basic landy"];
+const RARITIES = ["common", "uncommon", "rare", "mythic", "special", "bonus"];
 const alphabet = new Intl.Collator("en", { sensitivity: "base" });
 
 function parseDeck(text) {
@@ -68,25 +68,89 @@ function resolveBatch(entries, result) {
   });
 }
 
+async function loadRarities(cards, request, cache) {
+  const ids = [...new Set(cards.map(card => card.oracle_id).filter(Boolean))].filter(id => !cache.has(id));
+  for (let index = 0; index < ids.length; index += 10) {
+    const batch = ids.slice(index, index + 10);
+    const found = new Map(batch.map(id => [id, new Set()]));
+    const query = new URLSearchParams({ q: `game:paper (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
+    let url = `https://api.scryfall.com/cards/search?${query}`;
+    while (url) {
+      const result = await request(url);
+      for (const print of result.data) found.get(print.oracle_id)?.add(print.rarity);
+      url = result.has_more ? result.next_page : null;
+      if (result.has_more && !url) throw new Error("niepełna lista wydań");
+    }
+    // Only cache a complete history, never a partially downloaded list of printings.
+    for (const [id, rarities] of found) if (rarities.size) cache.set(id, [...rarities]);
+  }
+}
+
+function cardCaption(card) {
+  const rarities = [...new Set(card.rarities || [card.rarity])].sort((a, b) => RARITIES.indexOf(a) - RARITIES.indexOf(b));
+  const label = rarities.map(rarity => rarity[0].toUpperCase() + rarity.slice(1)).join(" / ");
+  const type = cardGroup(card) >= 3 ? (cardGroup(card) === 5 ? "Basic land" : "Land") : cardColor(card);
+  return `${label}${card.rarities ? "" : " (tylko to wydanie)"} · ${type}`;
+}
+
+function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
+  const scale = Math.min(1, (viewportWidth - 24) / width, (viewportHeight - 24) / height);
+  width *= scale;
+  height *= scale;
+  return {
+    width, height,
+    left: Math.max(12, Math.min(rect.left + (rect.width - width) / 2, viewportWidth - width - 12)),
+    top: Math.max(12, Math.min(rect.top + (rect.height - height) / 2, viewportHeight - height - 12))
+  };
+}
+
 // Classic scripts also work when index.html is opened directly with file://.
-if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch };
+if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadRarities, cardCaption, previewBounds };
 if (typeof document !== "undefined") init();
 
 function init() {
   const $ = id => document.getElementById(id);
   const cache = new Map();
+  const rarityCache = new Map();
   let cards = [];
   let problems = [];
   let imageRun = 0;
   let busy = false;
   let nextRequest = 0;
   const delay = ms => new Promise(resolve => setTimeout(resolve, ms));
+  async function request(url, options = {}) {
+    await delay(Math.max(0, nextRequest - Date.now()));
+    nextRequest = Date.now() + 550;
+    const response = await fetch(url, { ...options, headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}) }, signal: AbortSignal.timeout(20000) });
+    if (response.status === 429) {
+      nextRequest = Date.now() + 31000;
+      throw new Error("limit Scryfall - odczekaj 30 sekund");
+    }
+    if (!response.ok) throw new Error(`Scryfall: HTTP ${response.status}`);
+    return response.json();
+  }
   const make = (tag, className, text) => {
     const node = document.createElement(tag);
     node.className = className;
     if (text !== undefined) node.textContent = text;
     return node;
   };
+  const preview = make("img", "card-preview screen-only");
+  preview.alt = "";
+  preview.setAttribute("aria-hidden", "true");
+  preview.hidden = true;
+  document.body.append(preview);
+  const hidePreview = () => { preview.hidden = true; };
+  const showPreview = image => {
+    if (!image.naturalWidth) return;
+    const bounds = previewBounds(image.getBoundingClientRect(), image.naturalWidth, image.naturalHeight, innerWidth, innerHeight);
+    for (const [property, value] of Object.entries(bounds)) preview.style[property] = `${value}px`;
+    preview.src = image.currentSrc;
+    preview.hidden = false;
+  };
+  window.addEventListener("scroll", hidePreview, true);
+  ["resize", "blur", "beforeprint"].forEach(event => window.addEventListener(event, hidePreview));
+  document.addEventListener("keydown", event => { if (event.key === "Escape") hidePreview(); });
 
   try { $("decklist").value = localStorage.getItem("mtg-builder-deck") || ""; } catch { /* Storage can be disabled. */ }
   $("decklist").addEventListener("input", () => {
@@ -111,6 +175,7 @@ function init() {
   }
 
   async function render() {
+    hidePreview();
     const run = ++imageRun;
     const visible = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
     const perPage = Number($("density").value);
@@ -144,11 +209,19 @@ function init() {
           else finish(false);
         }));
         const caption = make("figcaption", "");
-        const group = cardGroup(card);
-        const meta = `${GROUPS[group]}${group < 3 ? ` · ${cardColor(card)}` : ""} · ${card.set.toUpperCase()} ${card.collector_number}`;
+        const meta = cardCaption(card);
         caption.append(make("span", "card-name", card.name), make("span", "card-meta", meta));
-        figure.title = `${card.name}\n${meta}`;
-        figure.append(image, caption);
+        const link = make("a", "card-link");
+        link.href = `https://scryfall.com/card/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}`;
+        link.target = "_blank";
+        link.rel = "noopener noreferrer";
+        link.setAttribute("aria-label", `${card.name} - otwórz na Scryfall w nowej karcie`);
+        link.addEventListener("pointerenter", event => { if (event.pointerType !== "touch") showPreview(image); });
+        link.addEventListener("pointerleave", hidePreview);
+        link.addEventListener("focus", () => { if (link.matches(":focus-visible")) showPreview(image); });
+        link.addEventListener("blur", hidePreview);
+        link.append(image);
+        figure.append(link, caption);
         if (card.quantity > 1) figure.append(make("span", "quantity", `×${card.quantity}`));
         grid.append(figure);
       });
@@ -174,6 +247,7 @@ function init() {
     problems = [...parsed.errors];
     if (!parsed.entries.length) { showProblems(); $("status").textContent = "Wpisz przynajmniej jedną kartę, np. 1 Sol Ring."; return; }
     busy = true;
+    hidePreview();
     ++imageRun;
     cards = [];
     $("sheets").replaceChildren();
@@ -188,20 +262,10 @@ function init() {
       const batch = pending.slice(index, index + 75);
       $("status").textContent = `Pobieranie kart: ${Math.min(index + 75, pending.length)}/${pending.length}…`;
       try {
-        await delay(Math.max(0, nextRequest - Date.now()));
-        nextRequest = Date.now() + 550;
-        const response = await fetch("https://api.scryfall.com/cards/collection", {
+        const result = await request("https://api.scryfall.com/cards/collection", {
           method: "POST",
-          headers: { Accept: "application/json", "Content-Type": "application/json" },
-          body: JSON.stringify({ identifiers: batch.map(cardIdentifier) }),
-          signal: AbortSignal.timeout(20000)
+          body: JSON.stringify({ identifiers: batch.map(cardIdentifier) })
         });
-        if (response.status === 429) {
-          nextRequest = Date.now() + 31000;
-          throw new Error("limit Scryfall - odczekaj 30 sekund");
-        }
-        if (!response.ok) throw new Error(`Scryfall: HTTP ${response.status}`);
-        const result = await response.json();
         resolveBatch(batch, result).forEach((card, position) => {
           const entry = batch[position];
           if (card) cache.set(key(entry), card);
@@ -224,6 +288,12 @@ function init() {
       const existing = cards.find(item => item.id === card.id);
       if (existing) existing.quantity += entry.quantity;
       else cards.push({ ...card, quantity: entry.quantity });
+    }
+    if (cards.length) {
+      $("status").textContent = "Sprawdzanie rzadkości we wszystkich wydaniach papierowych…";
+      try { await loadRarities(cards, request, rarityCache); }
+      catch (error) { problems.push(`Nie udało się pobrać pełnej historii rzadkości (${error.message}). Spróbuj ponownie.`); }
+      for (const card of cards) card.rarities = rarityCache.get(card.oracle_id);
     }
     busy = false;
     $("build").disabled = $("example").disabled = $("decklist").disabled = false;

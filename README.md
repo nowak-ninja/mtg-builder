@@ -16,11 +16,13 @@ Na GitHub Pages opublikuj katalog zawierający `index.html`, `styles.css` i `app
 - Common → uncommon → rare + mythic. W każdej grupie: G, B, U, W, R, bezkolorowe, wielokolorowe, potem A-Z.
 - Następnie non-basic landy common + uncommon A-Z, potem rare + mythic A-Z, bez podziału na kolory. Basic landy opcjonalnie na końcu.
 - Używany jest kolor karty, nie jej commander color identity. Dla kart dwustronnych wyświetlany i klasyfikowany jest przód. Spell z landem na odwrocie pozostaje w grupie spelli.
-- Obrazek i rzadkość odpowiadają konkretnemu wydaniu. Bez setu wersję wybiera Scryfall - może różnić się od posiadanej karty.
+- Obrazek i miejsce w kolejności odpowiadają konkretnemu wydaniu. Bez setu wersję wybiera Scryfall - może różnić się od posiadanej karty. Podpis bez kodu edycji pokazuje wszystkie rzadkości papierowych wydań karty, np. `Common / Rare / Mythic · U`. Historia jest wyszukiwana według Oracle ID, z uwzględnieniem wszystkich stron wyników, i buforowana w pamięci. Gdy nie uda się jej pobrać, podpis wyraźnie mówi „tylko to wydanie”.
 - Lista jest zapisywana wyłącznie lokalnie w przeglądarce. Zapytania o karty trafiają bezpośrednio do publicznego API Scryfall. Dane kart są buforowane w pamięci do odświeżenia strony.
 - Pobieranie odbywa się paczkami do 75 kart, z odstępem co najmniej 550 ms. Odpowiedź HTTP 429 przerywa pobieranie i wymusza przerwę przed ponowną próbą.
 
 ## Drukowanie
+
+Kliknięcie obrazka otwiera dane wydanie na Scryfall w nowej karcie. Najechanie myszą lub wybranie linku klawiszem Tab pokazuje obrazek w jego naturalnym rozmiarze, pomniejszony tylko gdy wymaga tego wielkość okna. Powiększenie nie przechwytuje kursora: sąsiednie karty pozostają aktywne pod nim. Escape zamyka podgląd; podgląd znika też przy przewijaniu i nie jest drukowany.
 
 Poczekaj na „Obrazki gotowe”, użyj Ctrl+P / Cmd+P. Papier A4, pionowo, skala 100%, wyłącz nagłówki i stopki przeglądarki. CSS ustawia marginesy 8 mm i jawny podział stron. Domyślnie 30 obrazków (6 × 5), opcjonalnie 20 (5 × 4). Nazwy są też wypisane pod obrazkami. Grupy nie zostawiają pustych wierszy między sobą. Arkusz nie jest wydrukiem kart w rozmiarze do gry.
 
