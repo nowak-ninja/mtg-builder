@@ -28,6 +28,14 @@ Po imporcie karty i wszystkie rzadkości są wyszukiwane lokalnie, także po zam
 
 Baza należy do konkretnej przeglądarki i adresu strony. Plik HTML, localhost i GitHub Pages mają osobne dane. Usunięcie danych witryny lub tryb prywatny mogą usunąć zapis. Gdy przeglądarka nie pozwala używać IndexedDB dla `file://`, uruchom lokalny serwer plików albo GitHub Pages.
 
+## Twoja kolekcja
+
+Kliknij **Wczytaj kolekcję CSV** po lewej i wybierz eksport Deckstats z kolumnami `amount` i `card_name`. Import jest lokalny: plik nie trafia na serwer ani do repozytorium. Nazwy kart są zapisywane w IndexedDB i odczytywane przy kolejnych wizytach. Następny import zastępuje kolekcję; błędny plik lub nieudany zapis zachowuje poprzednią. Kolekcja i baza Scryfall są przechowywane osobno - ich aktualizacje nie nadpisują się wzajemnie.
+
+Dopasowanie ignoruje edycję, foil, wielkość liter i akcenty; uwzględnia nazwy obu stron kart. Wystarczy co najmniej jedna posiadana sztuka. Nie sprawdzamy niedoboru liczby kopii. Bez wczytanej kolekcji karty nie są oznaczane jako brakujące.
+
+Brakujące karty mają wyszarzony obrazek z przekreśleniem i dużym **P**, również na wydruku. Oznaczenie obejmuje tylko obrazek; nazwa pod nim i pasek nad nim pozostają czytelne. Linki i podgląd pozostają aktywne. Po prawej pojawia się lista do skopiowania w formacie `liczba nazwa`, z ilościami z decka; uwzględnia też ukryte basic landy. Na małym ekranie panel jest pod arkuszami. Lista dotyczy kart rozpoznanych przez aplikację - błędy nazw lub pobierania nadal wymagają sprawdzenia komunikatów. Import od razu aktualizuje gotowy arkusz.
+
 ## Lista i sortowanie
 
 - Jedna karta w wierszu, nazwa lub liczba i nazwa: `1 Sol Ring`. Działa też sama nazwa `Sol Ring` oraz zapis `1x Sol Ring`. Angielskie nazwy Scryfall; dokładna nazwa, bez zgadywania literówek. Dopiski edycji i numeru w starszych eksportach są ignorowane.

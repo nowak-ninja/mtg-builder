@@ -58,6 +58,16 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .colors .mana-symbol { font-size: 16px; }
 .edition-note { border-top: 1px solid #e5e8df; margin: 17px 0 0; padding-top: 15px; font-size: 10px; }
 .local-database { border-bottom: 1px solid #e5e8df; margin-bottom: 20px; padding-bottom: 12px; }
+.missing-panel { min-width: 0; padding: 20px; background: #fffefa; border: 1px solid #dce1d7; border-radius: 12px; }
+.missing-panel textarea { min-height: 250px; margin-bottom: 10px; }
+@media (min-width: 1201px) {
+  main:has(.has-missing) { max-width: 1700px; }
+  .workspace.has-missing { grid-template-columns: 280px minmax(0, 1fr) 230px; gap: 24px; }
+}
+@media (min-width: 721px) and (max-width: 1200px) {
+  .has-missing .editor { grid-row: 1 / span 2; }
+  .missing-panel { grid-column: 2; }
+}
 .database-button { width: 100%; border: 1px solid #afbfaa; border-radius: 6px; padding: 10px; background: #f7f8f2; color: #224e3c; font-size: 12px; }
 #cancel-db { margin-top: 8px; }
 .preview { min-width: 0; }
@@ -82,6 +92,12 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .card-group-heading > span { font-size: 9px; font-weight: normal; }
 .card { margin: 0; min-width: 0; position: relative; padding: 4px; border: 1px solid #d5ddd1; border-radius: 6px; break-inside: avoid; page-break-inside: avoid; }
 .card-link { position: relative; display: block; border-radius: 5px; }
+.proxy .card-link > img { filter: grayscale(1); opacity: .35; }
+.proxy { border-color: #9b9f9a; }
+.proxy-overlay { position: absolute; inset: 0; pointer-events: none; }
+.proxy-overlay svg { display: block; width: 100%; height: 100%; overflow: hidden; }
+.proxy-overlay path { fill: none; stroke: #8a8f89; stroke-width: 1; vector-effect: non-scaling-stroke; }
+.proxy-overlay text { font: 120px Arial, sans-serif; font-weight: 700; fill: #858b84; opacity: .65; }
 .card-preview { position: fixed; z-index: 100; pointer-events: none; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 32px #0006; }
 .card img { width: 100%; aspect-ratio: 488 / 680; object-fit: contain; display: block; border-radius: 5px; background: #f0f1eb; font-size: 10px; }
 .card figcaption { padding-top: 4px; min-height: 27px; }
@@ -119,5 +135,5 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   .quantity { top: 1mm; right: 1mm; padding: .3mm 1mm; font-size: 7pt; color: black; }
   .sheet-footer { font-size: 6pt; margin: 2mm 0 0; height: 3mm; }
   .issues { background: white; color: black; border: 1px solid black; break-after: page; }
-  img { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  img, .proxy-overlay { print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 }

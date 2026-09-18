@@ -169,3 +169,19 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
   }, SyntaxError);
   console.log('OK: compact local index, printing selection, paper-only rarity history, DFC aliases and streamed JSONL.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
+
+const Collection = require('./collection.js');
+const collection = Collection.index(Collection.parse('\uFEFFamount,card_name,comment\r\n2,"Atraxa, Praetors\' Voice","line one\nline two"\r\n1,"""Rumors of My Death . . .""",\r\n1,Fire // Ice,\r\n0,Black Lotus,\r\n1,Sol Ring,\r\n3,Sol Ring,\r\n'));
+assert.equal(collection.count, 4);
+assert(collection.has({ name: 'SOL RING', set: 'different', quantity: 100 }));
+assert(collection.has({ name: 'Atraxa, Praetors’ Voice' }));
+assert(collection.has({ name: '"Rumors of My Death . . ."' }));
+assert(collection.has({ name: 'Ice' }));
+assert(collection.has({ name: 'Fire // Ice' }));
+assert(!collection.has({ name: 'Black Lotus' }));
+assert(!collection.has({ name: 'Sol' }));
+assert(Collection.index(Collection.parse('amount,card_name\n1,Delver of Secrets')).has({ name: 'Delver of Secrets // Insectile Aberration' }));
+assert(Collection.index(Collection.parse('amount,card_name\n1,Insectile Aberration')).has({ name: 'Delver of Secrets // Insectile Aberration' }));
+for (const invalid of ['wrong,header\n1,Sol Ring', 'amount,card_name', 'amount,card_name\n-1,Sol Ring', 'amount,card_name\n1,"Sol Ring', 'amount,card_name\n1,Sol Ring,extra', 'amount,card_name\n1,"Sol Ring"oops']) assert.throws(() => Collection.parse(invalid));
+assert.equal(Collection.index(Collection.parse('amount,card_name\n0,Sol Ring')).count, 0);
+console.log('OK: collection CSV quotes, commas, multiline fields, BOM, duplicates, zero counts, DFC names, edition-independent matching and invalid imports.');

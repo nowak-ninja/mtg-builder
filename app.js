@@ -155,6 +155,7 @@ function init() {
   const cache = new Map();
   const rarityCache = new Map();
   let localDatabase = null;
+  let collection = null;
   let downloadController;
   let cards = [];
   let problems = [];
@@ -216,11 +217,49 @@ function init() {
   }).catch(() => {
     $("database-status").textContent = "Pamięć bazy jest niedostępna. Możesz nadal korzystać z API. Spróbuj otworzyć stronę przez localhost lub GitHub Pages.";
   });
+  const collectionReady = cardDatabase.readCollection().then(snapshot => {
+    if (snapshot) collection = Collection.index(snapshot);
+    $("collection-status").textContent = collection
+      ? `${collection.count.toLocaleString("pl-PL")} nazw kart · ${snapshot.fileName} · kolekcja z ${new Date(snapshot.importedAt).toLocaleDateString("pl-PL")}.`
+      : "Nie wczytano kolekcji - posiadanie kart nie jest sprawdzane.";
+  }).catch(() => {
+    $("collection-status").textContent = "Nie można odczytać zapisanej kolekcji. Spróbuj otworzyć stronę przez localhost lub GitHub Pages.";
+  });
 
   function setBusy(value) {
     busy = value;
-    for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "download-db"]) $(id).disabled = value;
+    for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
   }
+  $("upload-collection").addEventListener("click", () => $("collection-file").click());
+  $("collection-file").addEventListener("change", async () => {
+    const file = $("collection-file").files[0];
+    if (!file || busy) return;
+    setBusy(true);
+    await collectionReady;
+    try {
+      const snapshot = { ...Collection.parse(await file.text()), fileName: file.name };
+      const next = Collection.index(snapshot);
+      await cardDatabase.saveCollection(snapshot);
+      collection = next;
+      $("collection-status").textContent = `${collection.count.toLocaleString("pl-PL")} nazw kart · ${file.name}. Kolekcja zapisana w przeglądarce.`;
+    } catch (error) {
+      $("collection-status").textContent = `Nie wczytano kolekcji: ${error.message}${collection ? " Poprzednia kolekcja pozostaje aktywna." : " Posiadanie kart nie jest sprawdzane."}`;
+    } finally {
+      $("collection-file").value = "";
+      setBusy(false);
+    }
+    render();
+  });
+  $("copy-missing").addEventListener("click", async () => {
+    try {
+      await navigator.clipboard.writeText($("missing-list").value);
+      $("copy-status").textContent = "Skopiowano listę.";
+    } catch {
+      $("missing-list").focus();
+      $("missing-list").select();
+      $("copy-status").textContent = "Lista zaznaczona. Skopiuj ją przez Ctrl+C / ⌘C.";
+    }
+  });
   $("cancel-db").addEventListener("click", () => downloadController?.abort());
   $("download-db").addEventListener("click", async () => {
     if (busy) return;
@@ -282,6 +321,12 @@ function init() {
     hidePreview();
     const run = ++imageRun;
     const visible = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
+    const missing = collection ? cards.filter(card => !collection.has(card)).sort(compareCards) : [];
+    $("missing-panel").hidden = !missing.length;
+    document.querySelector(".workspace").classList.toggle("has-missing", !!missing.length);
+    $("missing-list").value = missing.map(card => `${card.quantity} ${card.name}`).join("\n");
+    $("missing-summary").textContent = `Brakujące karty: ${missing.length}. Lista uwzględnia też ukryte basic landy.`;
+    $("copy-status").textContent = "P na arkuszu oznacza brak karty w kolekcji.";
     const perPage = Number($("density").value);
     const pageGroups = paginateCards(visible, perPage);
     const pages = pageGroups.length;
@@ -338,6 +383,15 @@ function init() {
           link.append(image);
           figure.append(markers, link, caption);
           if (card.quantity > 1) link.append(make("span", "quantity", `×${card.quantity}`));
+          if (collection && !collection.has(card)) {
+            figure.classList.add("proxy");
+            figure.title = "Brak w kolekcji - proxy";
+            link.setAttribute("aria-label", `${card.name} - brak w kolekcji, proxy - otwórz na Scryfall w nowej karcie`);
+            const overlay = make("div", "proxy-overlay");
+            overlay.setAttribute("aria-hidden", "true");
+            overlay.innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 0L100 100M100 0L0 100"/><text x="50" y="94" text-anchor="middle" textLength="80" lengthAdjust="spacingAndGlyphs">P</text></svg>';
+            link.append(overlay);
+          }
           grid.append(figure);
         });
         section.append(groupHeading, grid);
@@ -377,10 +431,13 @@ function init() {
     ++imageRun;
     cards = [];
     $("sheets").replaceChildren();
+    $("missing-panel").hidden = true;
+    $("missing-list").value = "";
+    document.querySelector(".workspace").classList.remove("has-missing");
     $("empty").hidden = true;
     $("stats").textContent = "Pobieranie kart…";
     showProblems();
-    await databaseReady;
+    await Promise.all([databaseReady, collectionReady]);
     const key = entry => entry.name.toLowerCase();
     if (localDatabase) {
       cache.clear();

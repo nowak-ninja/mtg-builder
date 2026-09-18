@@ -16,17 +16,22 @@ const CardDatabase = (() => {
     return database;
   }
 
-  async function read() {
+  async function readSnapshot(key) {
     const db = await open();
     const snapshot = await new Promise((resolve, reject) => {
-      const request = db.transaction("data").objectStore("data").get("snapshot");
+      const request = db.transaction("data").objectStore("data").get(key);
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
+    return snapshot;
+  }
+
+  async function read() {
+    const snapshot = await readSnapshot("snapshot");
     return snapshot ? index(snapshot) : null;
   }
 
-  async function save(snapshot, signal) {
+  async function save(snapshot, signal, key = "snapshot") {
     const db = await open();
     signal?.throwIfAborted();
     await new Promise((resolve, reject) => {
@@ -39,7 +44,7 @@ const CardDatabase = (() => {
         reject(transaction.error || new Error("Zapis bazy został przerwany."));
       };
       // One atomic replacement keeps the old database intact if import or storage fails.
-      transaction.objectStore("data").put(snapshot, "snapshot");
+      transaction.objectStore("data").put(snapshot, key);
     });
   }
 
@@ -131,7 +136,9 @@ const CardDatabase = (() => {
     return index(snapshot);
   }
 
-  return { read, download, compact, index, jsonLines, isArtSeries };
+  return { read, download, compact, index, jsonLines, isArtSeries,
+    readCollection: () => readSnapshot("collection"),
+    saveCollection: snapshot => save(snapshot, undefined, "collection") };
 })();
 
 if (typeof module !== "undefined") module.exports = CardDatabase;
