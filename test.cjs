@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const CardDatabase = require('./database.js');
-const { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadCardBatch, loadRarities, cardCaption, previewBounds } = require('./app.js');
+const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, cardCaption, paginateCards, previewBounds } = require('./app.js');
 
 const parsed = parseDeck(`Commander
 1 Atraxa, Praetors' Voice
@@ -19,8 +19,8 @@ assert.equal(parsed.entries.length, 5);
 assert.equal(parsed.entries[1].quantity, 3);
 assert.equal(parsed.entries[3].name, 'Fire // Ice');
 assert.equal(parsed.errors.length, 1);
-assert.deepEqual(cardIdentifier(parsed.entries[1]), { set: 'cmm', collector_number: '410' });
-assert.deepEqual(cardIdentifier({ name: 'Fire // Ice', set: '', number: '' }), { name: 'Fire' });
+assert.deepEqual(parsed.entries[1], { name: 'Sol Ring', quantity: 3 });
+assert.deepEqual(parseDeck('1 Sol Ring\n2 Sol Ring (CMM) 410\n3 Sol Ring (LEA) 270').entries, [{ name: 'Sol Ring', quantity: 6 }]);
 assert.equal(parseDeck('1xSol Ring\n2x Sol Ring').entries[0].quantity, 3);
 
 const card = (name, rarity, colors, type_line = 'Creature') => ({ name, rarity, colors, type_line, set: 'tst', collector_number: '1' });
@@ -52,12 +52,32 @@ for (const [x, y, vw, vh] of [[0, 0, 1440, 1000], [1400, 950, 1440, 1000], [350,
   assert(bounds.width <= 488 && bounds.height <= 680);
   assert(Math.abs(bounds.width / bounds.height - 488 / 680) < .001);
 }
-console.log('OK: parser, duplicates, exact editions, color order, A-Z, combined rarities, lands and double-faced cards.');
+console.log('OK: parser, duplicates, ignored edition suffixes, color order, A-Z, combined rarities, lands and double-faced cards.');
+for (const density of [30, 20]) {
+  const columns = density === 30 ? 6 : 5;
+  const rowHeight = density === 30 ? 51 : 61;
+  for (const input of [[], sorted, Array.from({ length: 61 }, (_, i) => card(`Card ${i}`, 'common', ['G']))]) {
+    const pages = paginateCards(input, density);
+    assert.deepEqual(pages.flatMap(page => page.flatMap(group => group.cards)), input);
+    for (const page of pages) {
+      assert(page.length > 0);
+      assert(page.flatMap(group => group.cards).length <= density);
+      let height = 0;
+      for (const group of page) {
+        assert(group.cards.every(c => cardGroup(c) === group.group));
+        const rows = Math.ceil(group.cards.length / columns);
+        height += 4 + rows * rowHeight + (rows - 1) * 1.5;
+      }
+      assert(height <= 268);
+    }
+  }
+  const pages = paginateCards(Array.from({ length: 61 }, (_, i) => card(`Card ${i}`, 'common', ['G'])), density);
+  assert.equal(pages.length, Math.ceil(61 / density));
+  assert.equal(pages[0][0].continued, false);
+  assert.equal(pages[1][0].continued, true);
+}
+console.log('OK: grouped pagination, continuation headings, order, page capacity and print height budget.');
 
-const batch = [{ name: 'Missing' }, { name: 'Sol Ring' }, { name: 'Wrong', set: 'cmm', number: '410' }, { name: 'Fire // Ice' }];
-const batchResult = resolveBatch(batch, { not_found: [{ name: 'Missing' }], data: [{ name: 'Sol Ring' }, { name: 'Another card' }, { name: 'Fire // Ice' }] });
-assert.deepEqual(batchResult.map(c => c?.name || null), [null, 'Sol Ring', null, 'Fire // Ice']);
-console.log('OK: collection mapping with missing cards and wrong collector numbers.');
 
 (async () => {
   const cache = new Map();
@@ -102,22 +122,22 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
   assert.equal(snapshot.cards[0].prices, undefined);
   const local = CardDatabase.index(snapshot);
   assert.equal(local.lookup({ name: 'mystic remora' }).id, 'old');
-  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'dmr', number: '87' }).id, 'new');
+  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'dmr', number: '87' }).id, 'old');
   assert.equal(local.lookup({ name: 'missing card' }), undefined);
-  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'aart', number: '87' }), undefined);
-  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'legacy' }), undefined);
+  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'aart', number: '87' }).id, 'old');
+  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'legacy' }).id, 'old');
   assert.equal(snapshot.cards[0].layout, 'art_series');
-  assert.equal(resolveBatch([{ name: 'Mystic Remora' }], { data: [snapshot.cards[0]], not_found: [] })[0], null);
   const onlineEntries = [{ name: 'Mystic Remora' }, { name: 'Missing' }, { name: 'Mystic Remora', set: 'dmr', number: '87' }];
   const online = await loadCardBatch(onlineEntries, async (url, options) => {
-    if (options) return { data: [printing({ id: 'new', set: 'dmr' })], not_found: [] };
+    assert.equal(options, undefined);
+    assert(new URL(url).pathname.endsWith('/cards/search'));
     const q = new URL(url).searchParams;
     assert.match(q.get('q'), /game:paper -layout:art_series prefer:oldest/);
     assert.match(q.get('q'), /!"Mystic Remora" or !"Missing"/);
     assert.equal(q.get('unique'), 'cards');
     return { data: [printing(), snapshot.cards[0]], has_more: false };
   });
-  assert.deepEqual(online.map(card => card?.id || null), ['old', null, 'new']);
+  assert.deepEqual(online.map(card => card?.id || null), ['old', null, 'old']);
   assert.deepEqual(await loadCardBatch([{ name: 'Missing' }], async () => {
     throw Object.assign(new Error('Not found'), { status: 404 });
   }), [null]);
@@ -130,7 +150,7 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
     return { data: [], has_more: false };
   });
   assert.equal(searchCalls, 2);
-  console.log('OK: oldest printing locally/online, explicit editions, Art Series including legacy snapshots, missing names and API failures.');
+  console.log('OK: oldest printing locally/online, ignored edition overrides, Art Series including legacy snapshots, missing names and API failures.');
 
   assert.equal(local.lookup({ name: 'Insectile Aberration' }).id, 'dfc');
   assert.deepEqual(local.rarities.get('remora'), ['common', 'rare']);

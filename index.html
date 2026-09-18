@@ -27,13 +27,13 @@
           <div class="section-heading"><h2><span>01</span> Decklista</h2><button class="text-button" id="example" type="button">Wstaw przykład ↗</button></div>
           <label class="sr-only" for="decklist">Lista kart, jedna karta w wierszu</label>
           <textarea id="decklist" spellcheck="false" required placeholder="1 Atraxa, Praetors' Voice&#10;1 Sol Ring&#10;1 Cultivate&#10;1 Swords to Plowshares&#10;1 Command Tower&#10;…" aria-describedby="format-help"></textarea>
-          <p class="hint" id="format-help">Jedna karta w wierszu. Nazwa lub liczba i nazwa; także eksport z wydaniem: <code>1 Sol Ring (CMM) 410</code>.</p>
+          <p class="hint" id="format-help">Jedna karta w wierszu, nazwa lub liczba i nazwa: <code>1 Sol Ring</code></p>
           <button class="primary-button" id="build" type="submit">Ułóż karty <span aria-hidden="true">→</span></button>
         </form>
         <div class="settings">
           <h2><span>02</span> Arkusz</h2>
           <label for="density">Karty na stronie A4</label>
-          <select id="density"><option value="30">30 kart · kompaktowo</option><option value="20">20 kart · większe obrazki</option></select>
+          <select id="density"><option value="30">Do 30 kart · kompaktowo</option><option value="20">Do 20 kart · większe obrazki</option></select>
           <label class="checkbox"><input type="checkbox" id="basics" checked> Pokaż też basic landy na końcu</label>
           <label class="checkbox"><input type="checkbox" id="rarities" checked> Sprawdzaj wszystkie rzadkości karty</label>
           <p class="hint">Powtórzenia to jeden obrazek z liczbą sztuk. Drukuj przez <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>P</kbd>, A4, skala 100%, bez nagłówków i stopek przeglądarki.</p>
@@ -51,7 +51,7 @@
           <div class="colors" aria-label="Kolejność kolorów: zielony, czarny, niebieski, biały, czerwony, bezkolorowy, wielokolorowy"></div>
           <p class="hint">W każdej grupie kolorów: A-Z. Landy: tylko A-Z. Kolor karty, nie color identity; dla kart dwustronnych liczy się przód.</p>
         </details>
-        <p class="edition-note">Po włączeniu sprawdzania podpis pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z wydania na obrazku. Podaj kod setu i numer, aby wybrać ilustrację; bez nich wybieramy najstarsze wydanie papierowe. Art Series są pomijane.</p>
+        <p class="edition-note">Po włączeniu sprawdzania pasek nad obrazkiem pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z wydania na obrazku. Wybieramy najstarsze wydanie papierowe. Art Series są pomijane.</p>
       </aside>
       <section class="preview" aria-label="Podgląd arkuszy">
         <div class="preview-toolbar screen-only"><h2>Twój arkusz</h2><span id="stats">A4 · gotowy do uporządkowania</span></div>

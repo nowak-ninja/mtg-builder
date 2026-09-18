@@ -2,6 +2,7 @@
 
 const COLOR_ORDER = ["G", "B", "U", "W", "R", "C", "M"];
 const RARITIES = ["common", "uncommon", "rare", "mythic", "special", "bonus"];
+const GROUP_LABELS = ["Common", "Uncommon", "Rare + mythic", "Non-basic landy · Common + uncommon", "Non-basic landy · Rare + mythic", "Basic landy"];
 const alphabet = new Intl.Collator("en", { sensitivity: "base" });
 const cardDatabase = typeof module !== "undefined" ? require("./database.js") : CardDatabase;
 
@@ -24,8 +25,8 @@ function parseDeck(text) {
     const edition = line.match(/^(.+?)\s+\(([a-z0-9]+)\)(?:\s+([\w★†-]+))?$/i);
     const name = (edition ? edition[1] : line).trim();
     if (!name || !Number.isSafeInteger(quantity) || quantity < 1) { errors.push(`Wiersz ${index + 1}: niepoprawna liczba lub nazwa karty.`); return; }
-    const entry = { name, quantity, set: edition?.[2].toLowerCase() || "", number: edition?.[3] || "" };
-    const key = JSON.stringify([name.toLowerCase(), entry.set, entry.number]);
+    const entry = { name, quantity };
+    const key = name.toLowerCase();
     if (entries.has(key)) entries.get(key).quantity += quantity;
     else entries.set(key, entry);
   });
@@ -52,35 +53,10 @@ function compareCards(a, b) {
   return group || color || alphabet.compare(a.name, b.name) || alphabet.compare(a.set, b.set) || alphabet.compare(a.collector_number, b.collector_number);
 }
 
-function cardIdentifier(entry) {
-  if (entry.set && entry.number) return { set: entry.set, collector_number: entry.number };
-  const name = entry.name.split(" // ")[0];
-  return entry.set ? { name, set: entry.set } : { name };
-}
-
-function resolveBatch(entries, result) {
-  let index = 0;
-  return entries.map(entry => {
-    const identifier = cardIdentifier(entry);
-    if (result.not_found.some(missing => Object.entries(identifier).every(([key, value]) => missing[key] === value))) return null;
-    const card = result.data[index++];
-    const names = [card?.name, card?.printed_name, ...(card?.card_faces || []).flatMap(face => [face.name, face.printed_name])].filter(Boolean);
-    return card && !cardDatabase.isArtSeries(card) && names.some(name => alphabet.compare(name, entry.name) === 0) ? card : null;
-  });
-}
-
 async function loadCardBatch(entries, request) {
-  const editions = entries.filter(entry => entry.set);
   const found = new Map();
-  if (editions.length) {
-    const result = await request("https://api.scryfall.com/cards/collection", {
-      method: "POST", body: JSON.stringify({ identifiers: editions.map(cardIdentifier) })
-    });
-    resolveBatch(editions, result).forEach((card, index) => found.set(editions[index], card));
-  }
-  const defaults = entries.filter(entry => !entry.set);
-  for (let index = 0; index < defaults.length; index += 10) {
-    const batch = defaults.slice(index, index + 10);
+  for (let index = 0; index < entries.length; index += 10) {
+    const batch = entries.slice(index, index + 10);
     const names = batch.map(entry => `!${JSON.stringify(entry.name.split(" // ")[0])}`).join(" or ");
     const query = new URLSearchParams({ q: `game:paper -layout:art_series prefer:oldest (${names})`, unique: "cards", order: "released", dir: "asc" });
     const prints = [];
@@ -126,6 +102,39 @@ function cardCaption(card, includeHistory = true) {
   return `${label}${includeHistory && !card.rarities ? " (tylko to wydanie)" : ""}`;
 }
 
+function paginateCards(cards, perPage) {
+  const columns = perPage === 30 ? 6 : 5;
+  // Millimetres, matching print CSS: 281 mm page minus 8 mm heading and 5 mm footer.
+  const rowHeight = perPage === 30 ? 51 : 61;
+  const pages = [];
+  let page, used = 0, rows = 0;
+  for (let start = 0; start < cards.length;) {
+    const group = cardGroup(cards[start]);
+    let end = start + 1;
+    while (end < cards.length && cardGroup(cards[end]) === group) end++;
+    let segment;
+    for (let offset = start; offset < end; offset += columns) {
+      const extra = rowHeight + (segment ? 1.5 : 4);
+      if (!page || used + extra > 268 || rows === perPage / columns) {
+        page = [];
+        pages.push(page);
+        used = rows = 0;
+        segment = null;
+      }
+      if (!segment) {
+        segment = { group, continued: offset > start, cards: [] };
+        page.push(segment);
+        used += 4;
+      } else used += 1.5;
+      segment.cards.push(...cards.slice(offset, Math.min(offset + columns, end)));
+      used += rowHeight;
+      rows++;
+    }
+    start = end;
+  }
+  return pages;
+}
+
 function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
   const scale = Math.min(1, (viewportWidth - 24) / width, (viewportHeight - 24) / height);
   width *= scale;
@@ -138,7 +147,7 @@ function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
 }
 
 // Classic scripts also work when index.html is opened directly with file://.
-if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadCardBatch, loadRarities, cardCaption, previewBounds };
+if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, cardCaption, paginateCards, previewBounds };
 if (typeof document !== "undefined") init();
 
 function init() {
@@ -156,7 +165,7 @@ function init() {
   async function request(url, options = {}) {
     await delay(Math.max(0, nextRequest - Date.now()));
     nextRequest = Date.now() + 550;
-    const response = await fetch(url, { ...options, headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}) }, signal: options.signal || AbortSignal.timeout(20000) });
+    const response = await fetch(url, { ...options, headers: { Accept: "application/json" }, signal: options.signal || AbortSignal.timeout(20000) });
     if (response.status === 429) {
       nextRequest = Date.now() + 31000;
       throw new Error("limit Scryfall - odczekaj 30 sekund");
@@ -177,11 +186,7 @@ function init() {
     symbol.setAttribute("aria-label", symbol.title);
     return symbol;
   };
-  document.querySelector(".colors").append(...COLOR_ORDER.map(color => {
-    const badge = make("span", `mana ${color.toLowerCase()}`);
-    badge.append(manaSymbol(color));
-    return badge;
-  }));
+  document.querySelector(".colors").append(...COLOR_ORDER.map(manaSymbol));
   const preview = make("img", "card-preview screen-only");
   preview.alt = "";
   preview.setAttribute("aria-hidden", "true");
@@ -278,7 +283,8 @@ function init() {
     const run = ++imageRun;
     const visible = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
     const perPage = Number($("density").value);
-    const pages = Math.ceil(visible.length / perPage);
+    const pageGroups = paginateCards(visible, perPage);
+    const pages = pageGroups.length;
     const total = visible.reduce((sum, card) => sum + card.quantity, 0);
     const basics = cards.filter(card => cardGroup(card) === 5).reduce((sum, card) => sum + card.quantity, 0);
     $("stats").textContent = `${visible.length} obrazków · ${total} szt. · ${pages} str. A4`;
@@ -289,42 +295,54 @@ function init() {
     for (let page = 0; page < pages; page++) {
       const sheet = make("section", "sheet");
       sheet.style.setProperty("--columns", perPage === 30 ? 6 : 5);
+      sheet.style.setProperty("--card-height", perPage === 30 ? "51mm" : "61mm");
+      sheet.style.setProperty("--image-height", perPage === 30 ? "37mm" : "47mm");
       const heading = make("div", "sheet-heading");
       heading.append(make("strong", "", "MTG Builder / Commander"), make("span", "", `${page + 1} / ${pages}`));
-      const grid = make("div", "card-grid");
-      visible.slice(page * perPage, (page + 1) * perPage).forEach(card => {
-        const figure = make("figure", "card");
-        const image = make("img", "");
-        image.alt = card.name;
-        image.loading = "eager";
-        const uri = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal;
-        loading.push(new Promise(resolve => {
-          let settled = false;
-          const finish = ok => { if (!settled) { settled = true; clearTimeout(timer); figure.classList.toggle("image-failed", !ok); resolve(ok); } };
-          const timer = setTimeout(() => finish(false), 30000);
-          image.onload = () => { figure.classList.remove("image-failed"); finish(true); };
-          image.onerror = () => finish(false);
-          if (uri) image.src = uri;
-          else finish(false);
-        }));
-        const caption = make("figcaption", "");
-        const meta = make("span", "card-meta", `${cardCaption(card, $("rarities").checked)} · `);
-        meta.append(cardGroup(card) >= 3 ? (cardGroup(card) === 5 ? "Basic land" : "Land") : manaSymbol(cardColor(card)));
-        caption.append(make("span", "card-name", card.name), meta);
-        const link = make("a", "card-link");
-        link.href = `https://scryfall.com/card/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}`;
-        link.target = "_blank";
-        link.rel = "noopener noreferrer";
-        link.setAttribute("aria-label", `${card.name} - otwórz na Scryfall w nowej karcie`);
-        link.addEventListener("pointerenter", event => { if (event.pointerType !== "touch") showPreview(image); });
-        link.addEventListener("pointerleave", hidePreview);
-        link.addEventListener("focus", () => { if (link.matches(":focus-visible")) showPreview(image); });
-        link.addEventListener("blur", hidePreview);
-        link.append(image);
-        figure.append(link, caption);
-        if (card.quantity > 1) figure.append(make("span", "quantity", `×${card.quantity}`));
-        grid.append(figure);
-      });
+      const groups = make("div", "sheet-groups");
+      for (const segment of pageGroups[page]) {
+        const section = make("section", "card-group");
+        const groupHeading = make("h3", "card-group-heading", GROUP_LABELS[segment.group]);
+        if (segment.continued) groupHeading.append(make("span", "", "ciąg dalszy"));
+        const grid = make("div", "card-grid");
+        segment.cards.forEach(card => {
+          const figure = make("figure", "card");
+          const image = make("img", "");
+          image.alt = card.name;
+          image.loading = "eager";
+          const uri = card.image_uris?.normal || card.card_faces?.[0]?.image_uris?.normal;
+          loading.push(new Promise(resolve => {
+            let settled = false;
+            const finish = ok => { if (!settled) { settled = true; clearTimeout(timer); figure.classList.toggle("image-failed", !ok); resolve(ok); } };
+            const timer = setTimeout(() => finish(false), 30000);
+            image.onload = () => { figure.classList.remove("image-failed"); finish(true); };
+            image.onerror = () => finish(false);
+            if (uri) image.src = uri;
+            else finish(false);
+          }));
+          const caption = make("figcaption", "");
+          const markers = make("div", "card-markers");
+          const initial = make("strong", "card-initial", [...card.name.trim()][0].toLocaleUpperCase("en"));
+          initial.setAttribute("aria-label", `Litera: ${initial.textContent}`);
+          markers.append(manaSymbol(cardColor(card)), initial, make("span", "card-rarities", cardCaption(card, $("rarities").checked)));
+          caption.append(make("span", "card-name", card.name));
+          const link = make("a", "card-link");
+          link.href = `https://scryfall.com/card/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}`;
+          link.target = "_blank";
+          link.rel = "noopener noreferrer";
+          link.setAttribute("aria-label", `${card.name} - otwórz na Scryfall w nowej karcie`);
+          link.addEventListener("pointerenter", event => { if (event.pointerType !== "touch") showPreview(image); });
+          link.addEventListener("pointerleave", hidePreview);
+          link.addEventListener("focus", () => { if (link.matches(":focus-visible")) showPreview(image); });
+          link.addEventListener("blur", hidePreview);
+          link.append(image);
+          figure.append(markers, link, caption);
+          if (card.quantity > 1) link.append(make("span", "quantity", `×${card.quantity}`));
+          grid.append(figure);
+        });
+        section.append(groupHeading, grid);
+        groups.append(section);
+      }
       const footer = make("div", "sheet-footer");
       const order = make("span", "");
       COLOR_ORDER.forEach((color, index) => {
@@ -333,7 +351,7 @@ function init() {
       });
       order.append(" · A-Z w grupach · Obrazki: Scryfall");
       footer.append(order);
-      sheet.append(heading, grid, footer);
+      sheet.append(heading, groups, footer);
       $("sheets").append(sheet);
     }
     if (busy) return;
@@ -363,13 +381,13 @@ function init() {
     $("stats").textContent = "Pobieranie kart…";
     showProblems();
     await databaseReady;
-    const key = entry => JSON.stringify(cardIdentifier(entry));
+    const key = entry => entry.name.toLowerCase();
     if (localDatabase) {
       cache.clear();
       for (const entry of parsed.entries) {
         const card = localDatabase.lookup(entry);
         if (card) cache.set(key(entry), card);
-        else problems.push(`${entry.name}: brak w lokalnej bazie. Sprawdź nazwę i wydanie lub zaktualizuj bazę.`);
+        else problems.push(`${entry.name}: brak w lokalnej bazie. Sprawdź nazwę lub zaktualizuj bazę.`);
       }
     }
     const pending = localDatabase ? [] : parsed.entries.filter(entry => !cache.has(key(entry)));
@@ -381,7 +399,7 @@ function init() {
         result.forEach((card, position) => {
           const entry = batch[position];
           if (card) cache.set(key(entry), card);
-          else problems.push(`${entry.name}${entry.set ? ` (${entry.set.toUpperCase()}) ${entry.number}` : ""}: nie znaleziono pasującej karty. Sprawdź nazwę i wydanie.`);
+          else problems.push(`${entry.name}: nie znaleziono pasującej karty. Sprawdź nazwę.`);
         });
       } catch (error) {
         const remaining = pending.slice(index).map(item => item.name).join(", ");
@@ -392,11 +410,6 @@ function init() {
     for (const entry of parsed.entries) {
       const card = cache.get(key(entry));
       if (!card) continue;
-      // Validate names even for cached set/number identifiers.
-      if (!resolveBatch([entry], { data: [card], not_found: [] })[0]) {
-        problems.push(`${entry.name}: numer wydania wskazuje inną kartę (${card.name}).`);
-        continue;
-      }
       const existing = cards.find(item => item.id === card.id);
       if (existing) existing.quantity += entry.quantity;
       else cards.push({ ...card, quantity: entry.quantity });

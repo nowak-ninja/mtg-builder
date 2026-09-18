@@ -62,7 +62,6 @@ const CardDatabase = (() => {
 
   function index(snapshot) {
     const byName = new Map();
-    const byEdition = new Map();
     const rarities = new Map();
     for (const card of snapshot.cards) {
       if (isArtSeries(card)) continue;
@@ -71,7 +70,6 @@ const CardDatabase = (() => {
         if (!byName.has(name)) byName.set(name, []);
         byName.get(name).push(card);
       }
-      byEdition.set(`${card.set}/${card.collector_number}`, card);
       if (card.oracle_id && card.games?.includes("paper")) {
         if (!rarities.has(card.oracle_id)) rarities.set(card.oracle_id, new Set());
         rarities.get(card.oracle_id).add(card.rarity);
@@ -81,9 +79,7 @@ const CardDatabase = (() => {
     return {
       count: snapshot.cards.length, updatedAt: snapshot.updatedAt, rarities,
       lookup(entry) {
-        const candidates = entry.set && entry.number
-          ? [byEdition.get(`${entry.set}/${entry.number}`)].filter(Boolean)
-          : (byName.get(normalize(entry.name)) || []).filter(card => !entry.set || card.set === entry.set);
+        const candidates = byName.get(normalize(entry.name)) || [];
         // Prefer paper cards, then the oldest printing; collector number breaks date ties.
         return candidates.sort((a, b) => Number(b.games?.includes("paper")) - Number(a.games?.includes("paper"))
           || (a.released_at || "9999").localeCompare(b.released_at || "9999")
