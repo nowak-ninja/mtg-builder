@@ -1,4 +1,5 @@
 const assert = require('node:assert/strict');
+const CardDatabase = require('./database.js');
 const { parseDeck, cardGroup, cardColor, compareCards, cardIdentifier, resolveBatch, loadRarities, cardCaption, previewBounds } = require('./app.js');
 
 const parsed = parseDeck(`Commander
@@ -75,11 +76,12 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
   }, cache);
   assert.equal(calls, 2);
   remora.rarities = cache.get('remora');
-  assert.equal(cardCaption(remora), 'Common / Rare / Mythic · U');
+  assert.equal(cardCaption(remora), 'Common / Rare / Mythic');
+  assert.equal(cardCaption(remora, false), 'Rare');
   assert.equal(cardGroup(remora), 2); // History changes the caption, not the sorting group.
   await loadRarities([remora], () => assert.fail('History should be cached'), cache);
   assert.match(cardCaption(card('Unknown', 'uncommon', ['G'])), /tylko to wydanie/);
-  assert.equal(cardCaption({ ...card('Land', 'rare', [], 'Land'), rarities: ['rare', 'common'] }), 'Common / Rare · Land');
+  assert.equal(cardCaption({ ...card('Land', 'rare', [], 'Land'), rarities: ['rare', 'common'] }), 'Common / Rare');
   const failed = new Map();
   await assert.rejects(loadRarities([remora], async url => {
     if (url === 'page-2') throw new Error('Offline');
@@ -87,4 +89,33 @@ console.log('OK: collection mapping with missing cards and wrong collector numbe
   }, failed), /Offline/);
   assert.equal(failed.size, 0);
   console.log('OK: rarity history, pagination, deduplication, cache, fallback and unchanged sorting.');
+
+  const printing = (overrides = {}) => ({ object: 'card', id: 'old', oracle_id: 'remora', name: 'Mystic Remora', rarity: 'common', set: 'ice', collector_number: '87', games: ['paper'], released_at: '1995-06-03', colors: ['U'], type_line: 'Enchantment', oracle_text: 'Not stored', prices: { usd: '1' }, ...overrides });
+  const snapshot = { updatedAt: '2026-09-18', cards: [
+    printing(), printing({ id: 'new', set: 'dmr', rarity: 'rare', released_at: '2023-01-13' }),
+    printing({ id: 'digital', set: 'ana', rarity: 'uncommon', games: ['arena'], released_at: '2027-01-01' }),
+    printing({ id: 'dfc', oracle_id: 'delver', name: 'Delver of Secrets // Insectile Aberration', card_faces: [{ name: 'Delver of Secrets', colors: ['U'], type_line: 'Creature', image_uris: { normal: 'https://cards.scryfall.io/front.jpg' } }, { name: 'Insectile Aberration' }] })
+  ].map(CardDatabase.compact) };
+  assert.equal(snapshot.cards[0].oracle_text, undefined);
+  assert.equal(snapshot.cards[0].prices, undefined);
+  const local = CardDatabase.index(snapshot);
+  assert.equal(local.lookup({ name: 'mystic remora' }).id, 'new');
+  assert.equal(local.lookup({ name: 'Mystic Remora', set: 'dmr', number: '87' }).id, 'new');
+  assert.equal(local.lookup({ name: 'missing card' }), undefined);
+  assert.equal(local.lookup({ name: 'Insectile Aberration' }).id, 'dfc');
+  assert.deepEqual(local.rarities.get('remora'), ['common', 'rare']);
+  assert.equal(local.lookup({ name: 'Delver of Secrets' }).card_faces[0].image_uris.normal, 'https://cards.scryfall.io/front.jpg');
+  assert.throws(() => CardDatabase.compact({ object: 'error' }), /Niepoprawny rekord/);
+  const jsonl = new TextEncoder().encode(JSON.stringify(printing({ name: 'Świątynia' })) + '\n\n' + JSON.stringify(printing()));
+  const stream = new ReadableStream({ start(controller) {
+    for (let i = 0; i < jsonl.length; i += 7) controller.enqueue(jsonl.slice(i, i + 7));
+    controller.close();
+  } });
+  const parsedLines = [];
+  for await (const record of CardDatabase.jsonLines(stream)) parsedLines.push(record);
+  assert.deepEqual(parsedLines.map(card => card.name), ['Świątynia', 'Mystic Remora']);
+  await assert.rejects(async () => {
+    for await (const record of CardDatabase.jsonLines(new Blob(['{"name":']).stream())) void record;
+  }, SyntaxError);
+  console.log('OK: compact local index, printing selection, paper-only rarity history, DFC aliases and streamed JSONL.');
 })().catch(error => { console.error(error); process.exitCode = 1; });

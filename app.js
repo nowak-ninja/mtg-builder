@@ -86,11 +86,10 @@ async function loadRarities(cards, request, cache) {
   }
 }
 
-function cardCaption(card) {
-  const rarities = [...new Set(card.rarities || [card.rarity])].sort((a, b) => RARITIES.indexOf(a) - RARITIES.indexOf(b));
+function cardCaption(card, includeHistory = true) {
+  const rarities = [...new Set((includeHistory && card.rarities) || [card.rarity])].sort((a, b) => RARITIES.indexOf(a) - RARITIES.indexOf(b));
   const label = rarities.map(rarity => rarity[0].toUpperCase() + rarity.slice(1)).join(" / ");
-  const type = cardGroup(card) >= 3 ? (cardGroup(card) === 5 ? "Basic land" : "Land") : cardColor(card);
-  return `${label}${card.rarities ? "" : " (tylko to wydanie)"} · ${type}`;
+  return `${label}${includeHistory && !card.rarities ? " (tylko to wydanie)" : ""}`;
 }
 
 function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
@@ -112,6 +111,8 @@ function init() {
   const $ = id => document.getElementById(id);
   const cache = new Map();
   const rarityCache = new Map();
+  let localDatabase = null;
+  let downloadController;
   let cards = [];
   let problems = [];
   let imageRun = 0;
@@ -121,7 +122,7 @@ function init() {
   async function request(url, options = {}) {
     await delay(Math.max(0, nextRequest - Date.now()));
     nextRequest = Date.now() + 550;
-    const response = await fetch(url, { ...options, headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}) }, signal: AbortSignal.timeout(20000) });
+    const response = await fetch(url, { ...options, headers: { Accept: "application/json", ...(options.body ? { "Content-Type": "application/json" } : {}) }, signal: options.signal || AbortSignal.timeout(20000) });
     if (response.status === 429) {
       nextRequest = Date.now() + 31000;
       throw new Error("limit Scryfall - odczekaj 30 sekund");
@@ -135,6 +136,18 @@ function init() {
     if (text !== undefined) node.textContent = text;
     return node;
   };
+  const manaSymbol = color => {
+    const symbol = make("span", `mana-symbol mana-${color.toLowerCase()}`);
+    symbol.title = { G: "Zielony", B: "Czarny", U: "Niebieski", W: "Biały", R: "Czerwony", C: "Bezkolorowy", M: "Wielokolorowy" }[color];
+    symbol.setAttribute("role", "img");
+    symbol.setAttribute("aria-label", symbol.title);
+    return symbol;
+  };
+  document.querySelector(".colors").append(...COLOR_ORDER.map(color => {
+    const badge = make("span", `mana ${color.toLowerCase()}`);
+    badge.append(manaSymbol(color));
+    return badge;
+  }));
   const preview = make("img", "card-preview screen-only");
   preview.alt = "";
   preview.setAttribute("aria-hidden", "true");
@@ -152,6 +165,54 @@ function init() {
   ["resize", "blur", "beforeprint"].forEach(event => window.addEventListener(event, hidePreview));
   document.addEventListener("keydown", event => { if (event.key === "Escape") hidePreview(); });
 
+  function databaseSummary() {
+    return localDatabase
+      ? `${localDatabase.count.toLocaleString("pl-PL")} wydań · baza z ${new Date(localDatabase.updatedAt).toLocaleDateString("pl-PL")}. Karty i rzadkości wyszukiwane lokalnie.`
+      : "Bez lokalnej bazy - karty i rzadkości pobierane przez API.";
+  }
+  const databaseReady = CardDatabase.read().then(result => {
+    localDatabase = result;
+    $("database-status").textContent = databaseSummary();
+    $("download-db").textContent = result ? "Aktualizuj bazę kart" : "Pobierz bazę kart";
+  }).catch(() => {
+    $("database-status").textContent = "Pamięć bazy jest niedostępna. Możesz nadal korzystać z API. Spróbuj otworzyć stronę przez localhost lub GitHub Pages.";
+  });
+
+  function setBusy(value) {
+    busy = value;
+    for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "download-db"]) $(id).disabled = value;
+  }
+  $("cancel-db").addEventListener("click", () => downloadController?.abort());
+  $("download-db").addEventListener("click", async () => {
+    if (busy) return;
+    setBusy(true);
+    downloadController = new AbortController();
+    $("cancel-db").hidden = false;
+    await databaseReady;
+    $("database-status").textContent = "Sprawdzanie aktualnej wersji bazy Scryfall…";
+    try {
+      const metadata = await request("https://api.scryfall.com/bulk-data/default_cards", { signal: downloadController.signal });
+      if (metadata.updated_at !== localDatabase?.updatedAt) {
+        localDatabase = await CardDatabase.download(metadata, (bytes, total, count, saving) => {
+          $("database-status").textContent = saving
+            ? `Zapisywanie ${count.toLocaleString("pl-PL")} wydań w przeglądarce…`
+            : `Pobieranie i przygotowanie: ${(bytes / 1048576).toFixed(1)} / ${(total / 1048576).toFixed(1)} MiB · ${count.toLocaleString("pl-PL")} wydań`;
+        }, downloadController.signal);
+        cache.clear();
+        rarityCache.clear();
+      }
+      $("download-db").textContent = "Aktualizuj bazę kart";
+      $("database-status").textContent = databaseSummary();
+      $("status").textContent = "Baza gotowa. Kliknij „Ułóż karty”, aby użyć lokalnych danych.";
+    } catch (error) {
+      $("database-status").textContent = `${downloadController.signal.aborted ? "Anulowano pobieranie." : `Nie zapisano bazy: ${error.message}.`} ${databaseSummary()}`;
+    } finally {
+      $("cancel-db").hidden = true;
+      downloadController = null;
+      setBusy(false);
+    }
+  });
+
   try { $("decklist").value = localStorage.getItem("mtg-builder-deck") || ""; } catch { /* Storage can be disabled. */ }
   $("decklist").addEventListener("input", () => {
     try { localStorage.setItem("mtg-builder-deck", $("decklist").value); } catch { /* The app still works without storage. */ }
@@ -163,6 +224,10 @@ function init() {
     $("decklist").focus();
   });
   ["density", "basics"].forEach(id => $(id).addEventListener("change", render));
+  $("rarities").addEventListener("change", () => {
+    if ($("rarities").checked && cards.length) $("deck-form").requestSubmit();
+    else render();
+  });
 
   function showProblems() {
     $("issues").replaceChildren();
@@ -209,8 +274,9 @@ function init() {
           else finish(false);
         }));
         const caption = make("figcaption", "");
-        const meta = cardCaption(card);
-        caption.append(make("span", "card-name", card.name), make("span", "card-meta", meta));
+        const meta = make("span", "card-meta", `${cardCaption(card, $("rarities").checked)} · `);
+        meta.append(cardGroup(card) >= 3 ? (cardGroup(card) === 5 ? "Basic land" : "Land") : manaSymbol(cardColor(card)));
+        caption.append(make("span", "card-name", card.name), meta);
         const link = make("a", "card-link");
         link.href = `https://scryfall.com/card/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}`;
         link.target = "_blank";
@@ -225,7 +291,15 @@ function init() {
         if (card.quantity > 1) figure.append(make("span", "quantity", `×${card.quantity}`));
         grid.append(figure);
       });
-      sheet.append(heading, grid, make("div", "sheet-footer", "G → B → U → W → R → C → M · A-Z w grupach · Obrazki: Scryfall"));
+      const footer = make("div", "sheet-footer");
+      const order = make("span", "");
+      COLOR_ORDER.forEach((color, index) => {
+        if (index) order.append(" → ");
+        order.append(manaSymbol(color));
+      });
+      order.append(" · A-Z w grupach · Obrazki: Scryfall");
+      footer.append(order);
+      sheet.append(heading, grid, footer);
       $("sheets").append(sheet);
     }
     if (busy) return;
@@ -246,18 +320,25 @@ function init() {
     const parsed = parseDeck($("decklist").value);
     problems = [...parsed.errors];
     if (!parsed.entries.length) { showProblems(); $("status").textContent = "Wpisz przynajmniej jedną kartę, np. 1 Sol Ring."; return; }
-    busy = true;
+    setBusy(true);
     hidePreview();
     ++imageRun;
     cards = [];
     $("sheets").replaceChildren();
     $("empty").hidden = true;
     $("stats").textContent = "Pobieranie kart…";
-    $("build").disabled = $("example").disabled = $("decklist").disabled = true;
-    $("density").disabled = $("basics").disabled = true;
     showProblems();
+    await databaseReady;
     const key = entry => JSON.stringify(cardIdentifier(entry));
-    const pending = parsed.entries.filter(entry => !cache.has(key(entry)));
+    if (localDatabase) {
+      cache.clear();
+      for (const entry of parsed.entries) {
+        const card = localDatabase.lookup(entry);
+        if (card) cache.set(key(entry), card);
+        else problems.push(`${entry.name}: brak w lokalnej bazie. Sprawdź nazwę i wydanie lub zaktualizuj bazę.`);
+      }
+    }
+    const pending = localDatabase ? [] : parsed.entries.filter(entry => !cache.has(key(entry)));
     for (let index = 0; index < pending.length; index += 75) {
       const batch = pending.slice(index, index + 75);
       $("status").textContent = `Pobieranie kart: ${Math.min(index + 75, pending.length)}/${pending.length}…`;
@@ -289,15 +370,15 @@ function init() {
       if (existing) existing.quantity += entry.quantity;
       else cards.push({ ...card, quantity: entry.quantity });
     }
-    if (cards.length) {
-      $("status").textContent = "Sprawdzanie rzadkości we wszystkich wydaniach papierowych…";
-      try { await loadRarities(cards, request, rarityCache); }
-      catch (error) { problems.push(`Nie udało się pobrać pełnej historii rzadkości (${error.message}). Spróbuj ponownie.`); }
-      for (const card of cards) card.rarities = rarityCache.get(card.oracle_id);
+    if (cards.length && $("rarities").checked) {
+      if (!localDatabase) {
+        $("status").textContent = "Sprawdzanie rzadkości we wszystkich wydaniach papierowych…";
+        try { await loadRarities(cards, request, rarityCache); }
+        catch (error) { problems.push(`Nie udało się pobrać pełnej historii rzadkości (${error.message}). Spróbuj ponownie.`); }
+      }
+      for (const card of cards) card.rarities = (localDatabase?.rarities || rarityCache).get(card.oracle_id);
     }
-    busy = false;
-    $("build").disabled = $("example").disabled = $("decklist").disabled = false;
-    $("density").disabled = $("basics").disabled = false;
+    setBusy(false);
     render();
   });
 }

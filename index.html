@@ -7,6 +7,7 @@
   <title>MTG Builder - od decklisty do biblioteki</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect x='6' y='2' width='20' height='28' rx='4' fill='%23224e3c'/%3E%3Cpath d='M16 8l6 8-6 8-6-8z' fill='%23e6d6a5'/%3E%3C/svg%3E">
   <link rel="stylesheet" href="styles.css">
+  <script src="database.js" defer></script>
   <script src="app.js" defer></script>
 </head>
 <body>
@@ -33,16 +34,24 @@
           <h2><span>02</span> Arkusz</h2>
           <label for="density">Karty na stronie A4</label>
           <select id="density"><option value="30">30 kart · kompaktowo</option><option value="20">20 kart · większe obrazki</option></select>
-          <label class="checkbox"><input type="checkbox" id="basics"> Pokaż też basic landy na końcu</label>
+          <label class="checkbox"><input type="checkbox" id="basics" checked> Pokaż też basic landy na końcu</label>
+          <label class="checkbox"><input type="checkbox" id="rarities" checked> Sprawdzaj wszystkie rzadkości karty</label>
           <p class="hint">Powtórzenia to jeden obrazek z liczbą sztuk. Drukuj przez <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>P</kbd>, A4, skala 100%, bez nagłówków i stopek przeglądarki.</p>
+        </div>
+        <div class="local-database">
+          <h2><span>03</span> Baza lokalna</h2>
+          <p class="hint">Przycisk poniżej pobiera tekstową bazę (kilkadziesiąt MB) i zapisuje ją w przeglądarce na kolejne wizyty. Wklejenie decklisty nie uruchamia pobierania bazy. Obrazki pozostają na CDN Scryfall.</p>
+          <button class="database-button" type="button" id="download-db">Pobierz bazę kart</button>
+          <button class="text-button" type="button" id="cancel-db" hidden>Anuluj pobieranie</button>
+          <p class="hint" id="database-status" role="status" aria-live="polite">Sprawdzanie lokalnej bazy…</p>
         </div>
         <details class="sorting" open>
           <summary>Kolejność w Twojej bibliotece</summary>
           <ol><li>Common</li><li>Uncommon</li><li>Rare + mythic</li><li>Non-basic landy: common + uncommon</li><li>Non-basic landy: rare + mythic</li></ol>
-          <div class="colors" aria-label="Kolejność kolorów: zielony, czarny, niebieski, biały, czerwony, bezkolorowy, wielokolorowy"><b class="mana g">G</b><b class="mana b">B</b><b class="mana u">U</b><b class="mana w">W</b><b class="mana r">R</b><b class="mana c">C</b><b class="mana m">M</b></div>
+          <div class="colors" aria-label="Kolejność kolorów: zielony, czarny, niebieski, biały, czerwony, bezkolorowy, wielokolorowy"></div>
           <p class="hint">W każdej grupie kolorów: A-Z. Landy: tylko A-Z. Kolor karty, nie color identity; dla kart dwustronnych liczy się przód.</p>
         </details>
-        <p class="edition-note">Pod nazwą znajdziesz wszystkie rzadkości z papierowych wydań karty. Kolejność nadal wynika z rzadkości wydania na obrazku. Podaj kod setu i numer, aby wybrać ilustrację; bez nich wydanie wybiera Scryfall.</p>
+        <p class="edition-note">Po włączeniu sprawdzania podpis pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z wydania na obrazku. Podaj kod setu i numer, aby wybrać ilustrację; bez nich baza lokalna wybiera najnowsze wydanie, preferując papier, a w trybie online wybiera je Scryfall.</p>
       </aside>
       <section class="preview" aria-label="Podgląd arkuszy">
         <div class="preview-toolbar screen-only"><h2>Twój arkusz</h2><span id="stats">A4 · gotowy do uporządkowania</span></div>
