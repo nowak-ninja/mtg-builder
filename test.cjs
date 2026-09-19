@@ -87,9 +87,9 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     calls++;
     if (calls === 1) {
       const query = new URL(url).searchParams;
-      assert.equal(query.get('q'), 'game:paper -layout:art_series (oracleid:remora)');
+      assert.equal(query.get('q'), 'game:paper -layout:art_series -is:token (oracleid:remora)');
       assert.equal(query.get('unique'), 'prints');
-      return { data: [{ oracle_id: 'remora', rarity: 'rare' }], has_more: true, next_page: 'page-2' };
+      return { data: [{ oracle_id: 'remora', rarity: 'rare' }, { oracle_id: 'remora', rarity: 'uncommon', layout: 'token' }], has_more: true, next_page: 'page-2' };
     }
     assert.equal(url, 'page-2');
     return { data: ['common', 'mythic', 'rare'].map(rarity => ({ oracle_id: 'remora', rarity })), has_more: false };
@@ -111,6 +111,19 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
   console.log('OK: rarity history, pagination, deduplication, cache, fallback and unchanged sorting.');
 
   const printing = (overrides = {}) => ({ object: 'card', id: 'old', oracle_id: 'remora', name: 'Mystic Remora', rarity: 'common', set: 'ice', collector_number: '87', games: ['paper'], released_at: '1995-06-03', colors: ['U'], type_line: 'Enchantment', oracle_text: 'Not stored', prices: { usd: '1' }, ...overrides });
+  const tokens = [
+    { layout: 'token' },
+    { layout: 'double_faced_token' },
+    { type_line: 'Token Creature - Zombie Human Shaman' },
+    { type_line: '', card_faces: [{ name: 'Mystic Remora', type_line: 'Token Creature - Fish' }] }
+  ].map((fields, i) => CardDatabase.compact(printing({ id: `token-${i}`, collector_number: '1', rarity: 'uncommon', ...fields })));
+  for (const token of tokens) {
+    const filtered = CardDatabase.index({ cards: [token, printing()] });
+    assert.equal(filtered.lookup({ name: 'Mystic Remora' }).id, 'old');
+    assert.deepEqual(filtered.rarities.get('remora'), ['common']);
+    assert.equal(CardDatabase.index({ cards: [token] }).lookup({ name: 'Mystic Remora' }), undefined);
+  }
+  assert.equal(CardDatabase.isExcludedCard(printing({ name: 'Token Collector', type_line: 'Creature - Goblin', oracle_text: 'Whenever a token enters...' })), false);
   const snapshot = { updatedAt: '2026-09-18', cards: [
     printing({ id: 'art', layout: 'art_series', type_line: 'Card // Card', name: 'Mystic Remora // Mystic Remora', set: 'aart', released_at: '1990-01-01', card_faces: [{ name: 'Mystic Remora', type_line: 'Card' }] }),
     printing({ id: 'legacy-art', type_line: 'Card // Card', set: 'legacy', released_at: '1990-01-01' }),
@@ -132,10 +145,10 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     assert.equal(options, undefined);
     assert(new URL(url).pathname.endsWith('/cards/search'));
     const q = new URL(url).searchParams;
-    assert.match(q.get('q'), /game:paper -layout:art_series prefer:oldest/);
+    assert.match(q.get('q'), /game:paper -layout:art_series -is:token prefer:oldest/);
     assert.match(q.get('q'), /!"Mystic Remora" or !"Missing"/);
     assert.equal(q.get('unique'), 'cards');
-    return { data: [printing(), snapshot.cards[0]], has_more: false };
+    return { data: [printing(), snapshot.cards[0], ...tokens], has_more: false };
   });
   assert.deepEqual(online.map(card => card?.id || null), ['old', null, 'old']);
   assert.deepEqual(await loadCardBatch([{ name: 'Missing' }], async () => {
@@ -150,7 +163,7 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     return { data: [], has_more: false };
   });
   assert.equal(searchCalls, 2);
-  console.log('OK: oldest printing locally/online, ignored edition overrides, Art Series including legacy snapshots, missing names and API failures.');
+  console.log('OK: oldest printing locally/online, ignored edition overrides, Art Series and tokens including legacy snapshots, missing names and API failures.');
 
   assert.equal(local.lookup({ name: 'Insectile Aberration' }).id, 'dfc');
   assert.deepEqual(local.rarities.get('remora'), ['common', 'rare']);

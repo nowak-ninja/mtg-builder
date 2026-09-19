@@ -2,8 +2,10 @@
 
 const CardDatabase = (() => {
   const normalize = name => name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-  // Older snapshots did not store layout; Art Series still have the distinctive type line.
-  const isArtSeries = card => card.layout === "art_series" || /^Card(?:\s*\/\/\s*Card)?$/.test(card.type_line || "");
+  // Type lines also identify Art Series and tokens in older snapshots without layout.
+  const isExcludedCard = card => ["art_series", "token", "double_faced_token"].includes(card.layout)
+    || /^Card(?:\s*\/\/\s*Card)?$/.test(card.type_line || "")
+    || [card, ...(card.card_faces || [])].some(face => /\bToken\b/.test(face.type_line || ""));
   let database;
 
   function open() {
@@ -69,7 +71,7 @@ const CardDatabase = (() => {
     const byName = new Map();
     const rarities = new Map();
     for (const card of snapshot.cards) {
-      if (isArtSeries(card)) continue;
+      if (isExcludedCard(card)) continue;
       const names = [card.name, card.printed_name, ...(card.card_faces || []).flatMap(face => [face.name, face.printed_name])];
       for (const name of new Set(names.filter(Boolean).map(normalize))) {
         if (!byName.has(name)) byName.set(name, []);
@@ -136,7 +138,7 @@ const CardDatabase = (() => {
     return index(snapshot);
   }
 
-  return { read, download, compact, index, jsonLines, isArtSeries,
+  return { read, download, compact, index, jsonLines, isExcludedCard,
     readCollection: () => readSnapshot("collection"),
     saveCollection: snapshot => save(snapshot, undefined, "collection") };
 })();

@@ -58,7 +58,7 @@ async function loadCardBatch(entries, request) {
   for (let index = 0; index < entries.length; index += 10) {
     const batch = entries.slice(index, index + 10);
     const names = batch.map(entry => `!${JSON.stringify(entry.name.split(" // ")[0])}`).join(" or ");
-    const query = new URLSearchParams({ q: `game:paper -layout:art_series prefer:oldest (${names})`, unique: "cards", order: "released", dir: "asc" });
+    const query = new URLSearchParams({ q: `game:paper -layout:art_series -is:token prefer:oldest (${names})`, unique: "cards", order: "released", dir: "asc" });
     const prints = [];
     let url = `https://api.scryfall.com/cards/search?${query}`;
     while (url) {
@@ -83,11 +83,11 @@ async function loadRarities(cards, request, cache) {
   for (let index = 0; index < ids.length; index += 10) {
     const batch = ids.slice(index, index + 10);
     const found = new Map(batch.map(id => [id, new Set()]));
-    const query = new URLSearchParams({ q: `game:paper -layout:art_series (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
+    const query = new URLSearchParams({ q: `game:paper -layout:art_series -is:token (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
     let url = `https://api.scryfall.com/cards/search?${query}`;
     while (url) {
       const result = await request(url);
-      for (const print of result.data) if (!cardDatabase.isArtSeries(print)) found.get(print.oracle_id)?.add(print.rarity);
+      for (const print of result.data) if (!cardDatabase.isExcludedCard(print)) found.get(print.oracle_id)?.add(print.rarity);
       url = result.has_more ? result.next_page : null;
       if (result.has_more && !url) throw new Error("niepełna lista wydań");
     }
@@ -158,6 +158,8 @@ function init() {
   const $ = id => document.getElementById(id);
   const cache = new Map();
   const rarityCache = new Map();
+  const copyHint = [...$("copy-status").childNodes];
+  let copyStatusTimer;
   let manualProxies = new Set();
   try {
     const saved = JSON.parse(localStorage.getItem("mtg-builder-proxies") || "[]");
@@ -261,10 +263,14 @@ function init() {
     render();
   });
   $("copy-missing").addEventListener("click", async () => {
+    clearTimeout(copyStatusTimer);
     try {
       await navigator.clipboard.writeText($("missing-list").value);
       $("copy-status").textContent = "Skopiowano listę.";
+      clearTimeout(copyStatusTimer);
+      copyStatusTimer = setTimeout(() => { $("copy-status").replaceChildren(...copyHint); }, 2000);
     } catch {
+      clearTimeout(copyStatusTimer);
       $("missing-list").focus();
       $("missing-list").select();
       $("copy-status").textContent = "Lista zaznaczona. Skopiuj ją przez Ctrl+C / ⌘C.";
@@ -335,8 +341,9 @@ function init() {
     $("missing-panel").hidden = !missing.length;
     document.querySelector(".workspace").classList.toggle("has-missing", !!missing.length);
     $("missing-list").value = missing.map(card => `${card.quantity} ${card.name}`).join("\n");
-    $("missing-summary").textContent = `Karty do proxy: ${missing.length}. Braki w kolekcji i ręcznie zaznaczone karty, także ukryte basic landy.`;
-    $("copy-status").textContent = "P na arkuszu oznacza kartę do przygotowania jako proxy.";
+    $("missing-summary").replaceChildren("Karty do proxy: ", make("strong", "", String(missing.length)), ". Braki w kolekcji i ręcznie zaznaczone karty, także ukryte basic landy.");
+    clearTimeout(copyStatusTimer);
+    $("copy-status").replaceChildren(...copyHint);
     const perPage = Number($("density").value);
     const pageGroups = paginateCards(visible, perPage);
     const pages = pageGroups.length;
