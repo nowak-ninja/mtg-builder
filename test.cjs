@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const CardDatabase = require('./database.js');
-const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, cardCaption, isProxy, paginateCards, previewBounds } = require('./app.js');
+const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds } = require('./app.js');
 
 const parsed = parseDeck(`Commander
 1 Atraxa, Praetors' Voice
@@ -87,7 +87,7 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     calls++;
     if (calls === 1) {
       const query = new URL(url).searchParams;
-      assert.equal(query.get('q'), 'game:paper -layout:art_series -is:token (oracleid:remora)');
+      assert.equal(query.get('q'), 'game:paper -is:extra -layout:art_series -is:token (oracleid:remora)');
       assert.equal(query.get('unique'), 'prints');
       return { data: [{ oracle_id: 'remora', rarity: 'rare' }, { oracle_id: 'remora', rarity: 'uncommon', layout: 'token' }], has_more: true, next_page: 'page-2' };
     }
@@ -124,6 +124,12 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     assert.equal(CardDatabase.index({ cards: [token] }).lookup({ name: 'Mystic Remora' }), undefined);
   }
   assert.equal(CardDatabase.isExcludedCard(printing({ name: 'Token Collector', type_line: 'Creature - Goblin', oracle_text: 'Whenever a token enters...' })), false);
+  for (const type_line of ['Emblem', 'Plane — Ravnica', 'Phenomenon', 'Scheme', 'Vanguard', 'Conspiracy', 'Dungeon', 'Artifact — Attraction', 'Artifact — Contraption']) {
+    const extra = printing({ type_line });
+    assert(CardDatabase.isExcludedCard(extra), type_line);
+    assert.equal(CardDatabase.index({ cards: [extra] }).lookup({ name: extra.name }), undefined);
+  }
+  assert(!CardDatabase.isExcludedCard(printing({ type_line: 'Legendary Planeswalker — Garruk' })));
   const snapshot = { updatedAt: '2026-09-18', cards: [
     printing({ id: 'art', layout: 'art_series', type_line: 'Card // Card', name: 'Mystic Remora // Mystic Remora', set: 'aart', released_at: '1990-01-01', card_faces: [{ name: 'Mystic Remora', type_line: 'Card' }] }),
     printing({ id: 'legacy-art', type_line: 'Card // Card', set: 'legacy', released_at: '1990-01-01' }),
@@ -145,10 +151,10 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     assert.equal(options, undefined);
     assert(new URL(url).pathname.endsWith('/cards/search'));
     const q = new URL(url).searchParams;
-    assert.match(q.get('q'), /game:paper -layout:art_series -is:token prefer:oldest/);
+    assert.match(q.get('q'), /game:paper -is:extra -layout:art_series -is:token prefer:oldest/);
     assert.match(q.get('q'), /!"Mystic Remora" or !"Missing"/);
     assert.equal(q.get('unique'), 'cards');
-    return { data: [printing(), snapshot.cards[0], ...tokens], has_more: false };
+    return { data: [printing(), snapshot.cards[0], ...tokens].map(card => ({ object: 'card', ...card })), has_more: false };
   });
   assert.deepEqual(online.map(card => card?.id || null), ['old', null, 'old']);
   assert.deepEqual(await loadCardBatch([{ name: 'Missing' }], async () => {
@@ -181,6 +187,72 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
     for await (const record of CardDatabase.jsonLines(new Blob(['{"name":']).stream())) void record;
   }, SyntaxError);
   console.log('OK: compact local index, printing selection, paper-only rarity history, DFC aliases and streamed JSONL.');
+
+  const source = printing({ id: 'maker', all_parts: [
+    { component: 'token', id: 'zombie-2' }, { component: 'token', id: 'zombie-1' },
+    { component: 'token', id: 'zombie-3' }, { component: 'token', id: 'emblem' },
+    { component: 'combo_piece', id: 'unrelated' }, { component: 'meld_result', id: 'meld' }
+  ] });
+  const parts = [
+    printing({ id: 'zombie-1', oracle_id: 'zombie-2/2', name: 'Zombie', layout: 'token', released_at: '1995-01-01' }),
+    printing({ id: 'zombie-2', oracle_id: 'zombie-2/2', name: 'Zombie', layout: 'token', released_at: '2020-01-01' }),
+    printing({ id: 'zombie-3', oracle_id: 'zombie-4/4', name: 'Zombie', layout: 'token' }),
+    printing({ id: 'emblem', oracle_id: 'emblem', name: 'Emblem', layout: 'emblem' })
+  ];
+  const compactSource = CardDatabase.compact(source);
+  assert.deepEqual(compactSource.token_ids, ['zombie-2', 'zombie-1', 'zombie-3', 'emblem']);
+  const newestToken = printing({ id: 'zombie-newest', oracle_id: 'zombie-2/2', name: 'Zombie', layout: 'token', released_at: '2025-01-01' });
+  const digitalToken = { ...newestToken, id: 'digital-token', games: ['arena'], released_at: '2099-01-01' };
+  const tokenDB = CardDatabase.index({ cards: [source, ...parts, newestToken, digitalToken].map(CardDatabase.compact) });
+  assert(tokenDB.hasTokenData);
+  assert.equal(tokenDB.lookup({ name: 'Zombie' }), undefined);
+  const noRequest = () => assert.fail('Fresh local database needs no API calls');
+  const resultTokens = await loadTokens([compactSource, compactSource], noRequest, tokenDB, new Map());
+  assert.deepEqual(resultTokens.map(card => card.id), ['zombie-newest', 'zombie-3']);
+  assert(resultTokens.every(card => cardGroup(card) === 6 && cardCaption(card) === 'Token' && card.quantity === 1));
+  assert(!isProxy(resultTokens[0], { has: () => false }, new Set(['Zombie'])));
+  for (const density of [20, 30]) {
+    const pages = paginateCards([...sorted, ...resultTokens], density);
+    assert.equal(pages.at(-1).at(-1).group, 6);
+    assert.deepEqual(pages.at(-1).at(-1).cards, resultTokens);
+  }
+  const legacy = { ...compactSource }; delete legacy.token_ids;
+  const legacyDB = CardDatabase.index({ cards: [legacy] });
+  assert(!legacyDB.hasTokenData);
+  let tokenCalls = 0;
+  const tokenCache = new Map();
+  const fetchParts = async (url, options) => {
+    tokenCalls++;
+    if (!options) {
+      const query = new URL(url).searchParams;
+      assert.equal(query.get('q'), 'game:paper is:token prefer:newest (oracleid:zombie-2/2 or oracleid:zombie-4/4)');
+      assert.equal(query.get('unique'), 'cards');
+      assert.equal(query.get('dir'), 'desc');
+      assert.equal(query.get('include_extras'), 'true');
+      return { data: [newestToken, parts[2]], has_more: false };
+    }
+    assert.equal(url, 'https://api.scryfall.com/cards/collection');
+    assert.equal(options.method, 'POST');
+    assert.equal(options.headers['Content-Type'], 'application/json');
+    const ids = JSON.parse(options.body).identifiers.map(item => item.id);
+    assert(ids.length <= 75);
+    return { data: [source, ...parts].filter(card => ids.includes(card.id)) };
+  };
+  assert.deepEqual(await loadTokens([legacy], fetchParts, legacyDB, tokenCache), resultTokens);
+  assert.equal(tokenCalls, 3);
+  assert.deepEqual(await loadTokens([legacy], noRequest, legacyDB, tokenCache), resultTokens);
+  assert.deepEqual(await loadTokens([CardDatabase.compact(printing())], noRequest, null, new Map()), []);
+  await assert.rejects(loadTokens([legacy], async () => ({ data: [] }), legacyDB, new Map()), /niepełne dane/);
+  await assert.rejects(loadTokens([legacy], async () => { throw new Error('Offline'); }, legacyDB, new Map()), /Offline/);
+  const manySources = Array.from({ length: 76 }, (_, i) => printing({ id: `maker-${i}` }));
+  const batchSizes = [];
+  assert.deepEqual(await loadTokens(manySources, async (url, options) => {
+    const ids = JSON.parse(options.body).identifiers.map(item => item.id);
+    batchSizes.push(ids.length);
+    return { data: manySources.filter(card => ids.includes(card.id)) };
+  }, null, new Map()), []);
+  assert.deepEqual(batchSizes, [75, 1]);
+  console.log('OK: token relations, local/API/legacy paths, oracle deduplication, same-name variants, no proxies, final print group and failures.');
 })().catch(error => { console.error(error); process.exitCode = 1; });
 
 const Collection = require('./collection.js');

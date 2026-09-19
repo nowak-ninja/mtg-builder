@@ -2,7 +2,7 @@
 
 const COLOR_ORDER = ["G", "B", "U", "W", "R", "C", "M"];
 const RARITIES = ["common", "uncommon", "rare", "mythic", "special", "bonus"];
-const GROUP_LABELS = ["Common", "Uncommon", "Rare + mythic", "Non-basic landy · Common + uncommon", "Non-basic landy · Rare + mythic", "Basic landy"];
+const GROUP_LABELS = ["Common", "Uncommon", "Rare + mythic", "Non-basic landy · Common + uncommon", "Non-basic landy · Rare + mythic", "Basic landy", "Tokeny"];
 const alphabet = new Intl.Collator("en", { sensitivity: "base" });
 const cardDatabase = typeof module !== "undefined" ? require("./database.js") : CardDatabase;
 
@@ -34,6 +34,7 @@ function parseDeck(text) {
 }
 
 function cardGroup(card) {
+  if (card.deckToken) return 6;
   const front = card.card_faces?.[0] || card;
   const type = front.type_line || card.type_line || "";
   const land = /\bLand\b/.test(type);
@@ -58,7 +59,7 @@ async function loadCardBatch(entries, request) {
   for (let index = 0; index < entries.length; index += 10) {
     const batch = entries.slice(index, index + 10);
     const names = batch.map(entry => `!${JSON.stringify(entry.name.split(" // ")[0])}`).join(" or ");
-    const query = new URLSearchParams({ q: `game:paper -layout:art_series -is:token prefer:oldest (${names})`, unique: "cards", order: "released", dir: "asc" });
+    const query = new URLSearchParams({ q: `game:paper -is:extra -layout:art_series -is:token prefer:oldest (${names})`, unique: "cards", order: "released", dir: "asc" });
     const prints = [];
     let url = `https://api.scryfall.com/cards/search?${query}`;
     while (url) {
@@ -68,7 +69,7 @@ async function loadCardBatch(entries, request) {
         if (error.status === 404 && !prints.length) break;
         throw error;
       }
-      prints.push(...result.data);
+      prints.push(...result.data.map(cardDatabase.compact));
       url = result.has_more ? result.next_page : null;
       if (result.has_more && !url) throw new Error("niepełna lista kart");
     }
@@ -83,7 +84,7 @@ async function loadRarities(cards, request, cache) {
   for (let index = 0; index < ids.length; index += 10) {
     const batch = ids.slice(index, index + 10);
     const found = new Map(batch.map(id => [id, new Set()]));
-    const query = new URLSearchParams({ q: `game:paper -layout:art_series -is:token (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
+    const query = new URLSearchParams({ q: `game:paper -is:extra -layout:art_series -is:token (${batch.map(id => `oracleid:${id}`).join(" or ")})`, unique: "prints", include_extras: "true" });
     let url = `https://api.scryfall.com/cards/search?${query}`;
     while (url) {
       const result = await request(url);
@@ -97,13 +98,66 @@ async function loadRarities(cards, request, cache) {
 }
 
 function cardCaption(card, includeHistory = true) {
+  if (card.deckToken) return "Token";
   const rarities = [...new Set((includeHistory && card.rarities) || [card.rarity])].sort((a, b) => RARITIES.indexOf(a) - RARITIES.indexOf(b));
   const label = rarities.map(rarity => rarity[0].toUpperCase() + rarity.slice(1)).join(" / ");
   return `${label}${includeHistory && !card.rarities ? " (tylko to wydanie)" : ""}`;
 }
 
 function isProxy(card, collection, manualProxies) {
-  return manualProxies.has(card.name) || Boolean(collection && !collection.has(card));
+  return !card.deckToken && (manualProxies.has(card.name) || Boolean(collection && !collection.has(card)));
+}
+
+async function loadTokens(cards, request, localDatabase, cache) {
+  async function getCards(ids, needRelations = false) {
+    const found = new Map(ids.map(id => [id, cache.get(id) || localDatabase?.getById(id)]));
+    const missing = ids.filter(id => !found.get(id) || (needRelations && !Array.isArray(found.get(id).token_ids)));
+    for (let i = 0; i < missing.length; i += 75) {
+      const batch = missing.slice(i, i + 75);
+      const result = await request("https://api.scryfall.com/cards/collection", {
+        method: "POST", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ identifiers: batch.map(id => ({ id })) })
+      });
+      for (const card of result.data) {
+        const compact = cardDatabase.compact(card);
+        found.set(card.id, compact);
+        cache.set(card.id, compact);
+      }
+      if (batch.some(id => !cache.has(id))) throw new Error("niepełne dane powiązań lub tokenów ze Scryfall");
+    }
+    return ids.map(id => found.get(id));
+  }
+  for (const card of cards) if (Array.isArray(card.token_ids)) cache.set(card.id, card);
+  const sources = await getCards([...new Set(cards.map(card => card.id))], true);
+  const ids = [...new Set(sources.flatMap(card => card.token_ids))];
+  const tokens = await getCards(ids);
+  // Oracle IDs keep distinct tokens with the same name (e.g. different Zombies) separate.
+  const unique = new Map();
+  for (const token of tokens.sort((a, b) => (b.released_at || "").localeCompare(a.released_at || ""))) {
+    if (cardDatabase.isToken(token) && !unique.has(token.oracle_id || token.id)) {
+      unique.set(token.oracle_id || token.id, token);
+    }
+  }
+  const pending = [...unique.values()].filter(token => token.oracle_id
+    && !localDatabase?.latestToken(token.oracle_id) && !cache.has(`latest-token:${token.oracle_id}`));
+  for (let i = 0; i < pending.length; i += 10) {
+    const batch = pending.slice(i, i + 10);
+    const query = new URLSearchParams({ q: `game:paper is:token prefer:newest (${batch.map(token => `oracleid:${token.oracle_id}`).join(" or ")})`, unique: "cards", order: "released", dir: "desc", include_extras: "true" });
+    const latest = new Map();
+    let url = `https://api.scryfall.com/cards/search?${query}`;
+    while (url) {
+      const result = await request(url);
+      for (const token of result.data) if (cardDatabase.isToken(token) && !latest.has(token.oracle_id)) latest.set(token.oracle_id, cardDatabase.compact(token));
+      url = result.has_more ? result.next_page : null;
+      if (result.has_more && !url) throw new Error("niepełna lista wydań tokenów");
+    }
+    if (batch.some(token => !latest.has(token.oracle_id))) throw new Error("brak najnowszego wydania tokena");
+    for (const [id, token] of latest) cache.set(`latest-token:${id}`, token);
+  }
+  return [...unique.values()].map(token => ({
+    ...(localDatabase?.latestToken(token.oracle_id) || cache.get(`latest-token:${token.oracle_id}`) || token),
+    deckToken: true, quantity: 1
+  })).sort(compareCards);
 }
 
 function paginateCards(cards, perPage) {
@@ -151,13 +205,14 @@ function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
 }
 
 // Classic scripts also work when index.html is opened directly with file://.
-if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, cardCaption, isProxy, paginateCards, previewBounds };
+if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds };
 if (typeof document !== "undefined") init();
 
 function init() {
   const $ = id => document.getElementById(id);
   const cache = new Map();
   const rarityCache = new Map();
+  const tokenCache = new Map();
   const copyHint = [...$("copy-status").childNodes];
   let copyStatusTimer;
   let manualProxies = new Set();
@@ -169,6 +224,7 @@ function init() {
   let collection = null;
   let downloadController;
   let cards = [];
+  let tokens = [];
   let problems = [];
   let imageRun = 0;
   let busy = false;
@@ -177,7 +233,7 @@ function init() {
   async function request(url, options = {}) {
     await delay(Math.max(0, nextRequest - Date.now()));
     nextRequest = Date.now() + 550;
-    const response = await fetch(url, { ...options, headers: { Accept: "application/json" }, signal: options.signal || AbortSignal.timeout(20000) });
+    const response = await fetch(url, { ...options, headers: { Accept: "application/json", ...options.headers }, signal: options.signal || AbortSignal.timeout(20000) });
     if (response.status === 429) {
       nextRequest = Date.now() + 31000;
       throw new Error("limit Scryfall - odczekaj 30 sekund");
@@ -239,7 +295,7 @@ function init() {
 
   function setBusy(value) {
     busy = value;
-    for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
+    for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "tokens", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
     document.querySelectorAll(".proxy-toggle input").forEach(input => { input.disabled = value || input.dataset.automatic === "true"; });
   }
   $("upload-collection").addEventListener("click", () => $("collection-file").click());
@@ -286,7 +342,7 @@ function init() {
     $("database-status").textContent = "Sprawdzanie aktualnej wersji bazy Scryfall…";
     try {
       const metadata = await request("https://api.scryfall.com/bulk-data/default_cards", { signal: downloadController.signal });
-      if (metadata.updated_at !== localDatabase?.updatedAt) {
+      if (metadata.updated_at !== localDatabase?.updatedAt || !localDatabase?.hasTokenData) {
         localDatabase = await cardDatabase.download(metadata, (bytes, total, count, saving) => {
           $("database-status").textContent = saving
             ? `Zapisywanie ${count.toLocaleString("pl-PL")} wydań w przeglądarce…`
@@ -294,6 +350,7 @@ function init() {
         }, downloadController.signal);
         cache.clear();
         rarityCache.clear();
+        tokenCache.clear();
       }
       $("download-db").textContent = "Aktualizuj bazę kart";
       $("database-status").textContent = databaseSummary();
@@ -322,6 +379,14 @@ function init() {
     if ($("rarities").checked && cards.length) $("deck-form").requestSubmit();
     else render();
   });
+  $("tokens").addEventListener("change", () => {
+    $("token-status").textContent = "";
+    if ($("tokens").checked && cards.length) $("deck-form").requestSubmit();
+    else {
+      problems = problems.filter(problem => !problem.startsWith("Nie udało się ustalić pełnej listy tokenów"));
+      render();
+    }
+  });
 
   function showProblems() {
     $("issues").replaceChildren();
@@ -337,6 +402,7 @@ function init() {
     hidePreview();
     const run = ++imageRun;
     const visible = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
+    if ($("tokens").checked) visible.push(...tokens);
     const missing = cards.filter(card => isProxy(card, collection, manualProxies)).sort(compareCards);
     $("missing-panel").hidden = !missing.length;
     document.querySelector(".workspace").classList.toggle("has-missing", !!missing.length);
@@ -347,9 +413,9 @@ function init() {
     const perPage = Number($("density").value);
     const pageGroups = paginateCards(visible, perPage);
     const pages = pageGroups.length;
-    const total = visible.reduce((sum, card) => sum + card.quantity, 0);
+    const total = visible.filter(card => !card.deckToken).reduce((sum, card) => sum + card.quantity, 0);
     const basics = cards.filter(card => cardGroup(card) === 5).reduce((sum, card) => sum + card.quantity, 0);
-    $("stats").textContent = `${visible.length} obrazków · ${total} szt. · ${pages} str. A4`;
+    $("stats").textContent = `${visible.length} obrazków · ${total} szt. w talii${$("tokens").checked ? ` · ${tokens.length} rodz. tokenów` : ""} · ${pages} str. A4`;
     $("sheets").replaceChildren();
     $("empty").hidden = !!visible.length;
     showProblems();
@@ -401,24 +467,26 @@ function init() {
           figure.append(markers, link, caption);
           if (card.quantity > 1) link.append(make("span", "quantity", `×${card.quantity}`));
           const automaticProxy = Boolean(collection && !collection.has(card));
-          const proxyToggle = make("label", "proxy-toggle screen-only");
-          proxyToggle.title = automaticProxy ? "Brak w kolekcji - proxy oznaczone automatycznie" : "Oznacz kartę jako proxy";
-          const proxyInput = make("input", "");
-          proxyInput.type = "checkbox";
-          proxyInput.checked = isProxy(card, collection, manualProxies);
-          proxyInput.disabled = busy || automaticProxy;
-          proxyInput.dataset.automatic = String(automaticProxy);
-          proxyInput.dataset.card = card.id;
-          proxyInput.setAttribute("aria-label", `${card.name} - proxy${automaticProxy ? " (brak w kolekcji)" : ""}`);
-          proxyInput.addEventListener("change", () => {
-            if (proxyInput.checked) manualProxies.add(card.name);
-            else manualProxies.delete(card.name);
-            try { localStorage.setItem("mtg-builder-proxies", JSON.stringify([...manualProxies])); } catch { /* Selection remains active for this visit. */ }
-            render();
-            document.querySelector(`.proxy-toggle input[data-card="${CSS.escape(card.id)}"]`)?.focus({ preventScroll: true });
-          });
-          proxyToggle.append(proxyInput, "Proxy");
-          figure.append(proxyToggle);
+          if (!card.deckToken) {
+            const proxyToggle = make("label", "proxy-toggle screen-only");
+            proxyToggle.title = automaticProxy ? "Brak w kolekcji - proxy oznaczone automatycznie" : "Oznacz kartę jako proxy";
+            const proxyInput = make("input", "");
+            proxyInput.type = "checkbox";
+            proxyInput.checked = isProxy(card, collection, manualProxies);
+            proxyInput.disabled = busy || automaticProxy;
+            proxyInput.dataset.automatic = String(automaticProxy);
+            proxyInput.dataset.card = card.id;
+            proxyInput.setAttribute("aria-label", `${card.name} - proxy${automaticProxy ? " (brak w kolekcji)" : ""}`);
+            proxyInput.addEventListener("change", () => {
+              if (proxyInput.checked) manualProxies.add(card.name);
+              else manualProxies.delete(card.name);
+              try { localStorage.setItem("mtg-builder-proxies", JSON.stringify([...manualProxies])); } catch { /* Selection remains active for this visit. */ }
+              render();
+              document.querySelector(`.proxy-toggle input[data-card="${CSS.escape(card.id)}"]`)?.focus({ preventScroll: true });
+            });
+            proxyToggle.append(proxyInput, "Proxy");
+            figure.append(proxyToggle);
+          }
           if (isProxy(card, collection, manualProxies)) {
             const reason = automaticProxy ? "Brak w kolekcji - proxy" : "Ręcznie oznaczone proxy";
             figure.classList.add("proxy");
@@ -467,6 +535,8 @@ function init() {
     hidePreview();
     ++imageRun;
     cards = [];
+    tokens = [];
+    $("token-status").textContent = "";
     $("sheets").replaceChildren();
     $("missing-panel").hidden = true;
     $("missing-list").value = "";
@@ -515,6 +585,16 @@ function init() {
         catch (error) { problems.push(`Nie udało się pobrać pełnej historii rzadkości (${error.message}). Spróbuj ponownie.`); }
       }
       for (const card of cards) card.rarities = (localDatabase?.rarities || rarityCache).get(card.oracle_id);
+    }
+    if (cards.length && $("tokens").checked) {
+      $("status").textContent = "Sprawdzanie tokenów do decka…";
+      try {
+        tokens = await loadTokens(cards, request, localDatabase, tokenCache);
+        if (tokens.length) $("token-status").replaceChildren("Liczba tokenów: ", make("strong", "", String(tokens.length)));
+        else $("token-status").textContent = "Scryfall nie wskazuje tokenów dla tej decklisty.";
+      } catch (error) {
+        problems.push(`Nie udało się ustalić pełnej listy tokenów (${error.message}). Spróbuj ponownie.`);
+      }
     }
     setBusy(false);
     render();

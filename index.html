@@ -37,6 +37,9 @@
           <select id="density"><option value="30">Do 30 kart · kompaktowo</option><option value="20">Do 20 kart · większe obrazki</option></select>
           <label class="checkbox"><input type="checkbox" id="basics" checked> Pokaż też basic landy na końcu</label>
           <label class="checkbox"><input type="checkbox" id="rarities" checked> Sprawdzaj wszystkie rzadkości karty</label>
+          <label class="checkbox"><input type="checkbox" id="tokens" aria-describedby="token-help"> Dodaj tokeny do decka</label>
+          <p class="hint" id="token-help">Po jednym obrazku każdego rodzaju tokena powiązanego w Scryfall, bez sprawdzania kolekcji. To lista pomocnicza, nie liczba potrzebnych sztuk; kopie dowolnych kart mogą wymagać własnych znaczników.</p>
+          <p class="hint" id="token-status" role="status" aria-live="polite"></p>
           <p class="hint">Powtórzenia to jeden obrazek z liczbą sztuk. Drukuj przez <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>P</kbd>, A4, skala 100%, bez nagłówków i stopek przeglądarki.</p>
         </div>
         <div class="local-database">
@@ -59,7 +62,7 @@
           <div class="colors" aria-label="Kolejność kolorów: zielony, czarny, niebieski, biały, czerwony, bezkolorowy, wielokolorowy"></div>
           <p class="hint">W każdej grupie kolorów: A-Z. Landy: tylko A-Z. Kolor karty, nie color identity; dla kart dwustronnych liczy się przód.</p>
         </details>
-        <p class="edition-note">Po włączeniu sprawdzania pasek nad obrazkiem pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z wydania na obrazku. Wybieramy najstarsze wydanie papierowe. Art Series i tokeny są pomijane.</p>
+        <p class="edition-note">Po włączeniu sprawdzania pasek nad obrazkiem pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z wydania na obrazku. Wybieramy najstarsze wydanie papierowe. W deckliście pomijamy Art Series, tokeny i dodatki spoza talii (np. emblematy, lochy i karty Planechase). Tokeny można dodać osobno opcją powyżej.</p>
       </aside>
       <section class="preview" aria-label="Podgląd arkuszy">
         <div class="preview-toolbar screen-only"><h2>Twój arkusz</h2><span id="stats">A4 · gotowy do uporządkowania</span></div>

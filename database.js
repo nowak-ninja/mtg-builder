@@ -2,10 +2,12 @@
 
 const CardDatabase = (() => {
   const normalize = name => name.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-  // Type lines also identify Art Series and tokens in older snapshots without layout.
-  const isExcludedCard = card => ["art_series", "token", "double_faced_token"].includes(card.layout)
-    || /^Card(?:\s*\/\/\s*Card)?$/.test(card.type_line || "")
+  const isToken = card => ["token", "double_faced_token"].includes(card.layout)
     || [card, ...(card.card_faces || [])].some(face => /\bToken\b/.test(face.type_line || ""));
+  // Type lines also identify extras in older snapshots without layout.
+  const isExcludedCard = card => isToken(card) || ["art_series", "emblem", "planar", "scheme", "vanguard"].includes(card.layout)
+    || /^Card(?:\s*\/\/\s*Card)?$/.test(card.type_line || "")
+    || [card, ...(card.card_faces || [])].some(face => /\b(Emblem|Plane|Phenomenon|Scheme|Vanguard|Conspiracy|Dungeon|Attraction|Contraption)\b/.test(face.type_line || ""));
   let database;
 
   function open() {
@@ -58,6 +60,7 @@ const CardDatabase = (() => {
     for (const key of ["id", "oracle_id", "name", "printed_name", "set", "collector_number", "rarity", "colors", "type_line", "released_at", "lang", "games", "layout"]) {
       if (card[key] !== undefined) result[key] = card[key];
     }
+    result.token_ids = (card.all_parts || []).filter(part => part.component === "token").map(part => part.id);
     if (card.image_uris?.normal) result.image_uris = { normal: card.image_uris.normal };
     if (card.card_faces) result.card_faces = card.card_faces.map(face => {
       const result = { name: face.name, printed_name: face.printed_name, colors: face.colors, type_line: face.type_line };
@@ -68,9 +71,15 @@ const CardDatabase = (() => {
   }
 
   function index(snapshot) {
+    const byId = new Map(snapshot.cards.map(card => [card.id, card]));
     const byName = new Map();
+    const latestTokens = new Map();
     const rarities = new Map();
     for (const card of snapshot.cards) {
+      if (isToken(card) && card.oracle_id && card.games?.includes("paper")) {
+        const current = latestTokens.get(card.oracle_id);
+        if (!current || (card.released_at || "") > (current.released_at || "")) latestTokens.set(card.oracle_id, card);
+      }
       if (isExcludedCard(card)) continue;
       const names = [card.name, card.printed_name, ...(card.card_faces || []).flatMap(face => [face.name, face.printed_name])];
       for (const name of new Set(names.filter(Boolean).map(normalize))) {
@@ -85,6 +94,9 @@ const CardDatabase = (() => {
     for (const [id, values] of rarities) rarities.set(id, [...values]);
     return {
       count: snapshot.cards.length, updatedAt: snapshot.updatedAt, rarities,
+      getById: id => byId.get(id),
+      latestToken: oracleId => latestTokens.get(oracleId),
+      hasTokenData: snapshot.cards.every(card => Array.isArray(card.token_ids)),
       lookup(entry) {
         const candidates = byName.get(normalize(entry.name)) || [];
         // Prefer paper cards, then the oldest printing; collector number breaks date ties.
@@ -138,7 +150,7 @@ const CardDatabase = (() => {
     return index(snapshot);
   }
 
-  return { read, download, compact, index, jsonLines, isExcludedCard,
+  return { read, download, compact, index, jsonLines, isExcludedCard, isToken,
     readCollection: () => readSnapshot("collection"),
     saveCollection: snapshot => save(snapshot, undefined, "collection") };
 })();
