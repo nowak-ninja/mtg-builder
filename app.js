@@ -210,6 +210,12 @@ if (typeof document !== "undefined") init();
 
 function init() {
   const $ = id => document.getElementById(id);
+  $("theme-toggle").checked = document.documentElement.dataset.theme === "dark";
+  $("theme-toggle").addEventListener("change", () => {
+    const theme = $("theme-toggle").checked ? "dark" : "light";
+    document.documentElement.dataset.theme = theme;
+    try { localStorage.setItem("mtg-builder-theme", theme); } catch { /* Theme still works for this visit. */ }
+  });
   const cache = new Map();
   const rarityCache = new Map();
   const tokenCache = new Map();

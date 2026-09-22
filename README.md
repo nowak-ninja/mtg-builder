@@ -8,6 +8,8 @@ https://nowak-ninja.github.io/mtg-builder
 
 Otwórz `index.html` w przeglądarce. Do pobrania danych i obrazków potrzebne jest połączenie z internetem. Alternatywnie uruchom dowolny serwer plików statycznych, np. `python3 -m http.server 8000`, i wejdź na `http://localhost:8000`.
 
+Przełącznik **Ciemny motyw** w nagłówku zapisuje wybór w `localStorage` dla tej przeglądarki i adresu strony. Bez zapisanego wyboru strona przy otwieraniu używa motywu systemowego. Wydruk zawsze zachowuje jasne tło i kolory symboli many. Przy zablokowanej pamięci przełącznik nadal działa do zamknięcia strony.
+
 ## GitHub Pages
 
 W repozytorium ustaw **Settings → Pages → Build and deployment → Source: GitHub Actions**. Workflow `.github/workflows/pages.yml` po każdym pushu na `master` uruchamia `node test.cjs`, pakuje pliki aplikacji wraz z katalogiem `assets` i publikuje stronę. Można go też uruchomić ręcznie przez **Actions → Deploy GitHub Pages → Run workflow**. Jeśli zmienisz główną gałąź, zmień również `branches` w workflow. Nie potrzeba npm ani kompilacji.

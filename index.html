@@ -5,6 +5,13 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="theme-color" content="#224e3c">
   <title>MTG Builder - od decklisty do biblioteki</title>
+  <script>
+    // Apply the saved theme before the first paint, also when opened via file://.
+    let savedTheme;
+    try { savedTheme = localStorage.getItem("mtg-builder-theme"); } catch { /* Storage may be disabled. */ }
+    document.documentElement.dataset.theme = savedTheme === "dark" || savedTheme === "light"
+      ? savedTheme : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+  </script>
   <link rel="icon" type="image/svg+xml" href="assets/logo.svg">
   <link rel="stylesheet" href="styles.css">
   <script src="database.js" defer></script>
@@ -15,6 +22,7 @@
   <header class="topbar screen-only">
     <a class="brand" href="./"><img class="brand-mark" src="assets/logo.svg" alt="" width="38" height="44"> MTG <strong>Builder</strong></a>
     <span class="eyebrow">COMMANDER / POMOCNIK KOLEKCJONERA</span>
+    <label class="checkbox theme-toggle"><input type="checkbox" id="theme-toggle"> Ciemny motyw</label>
   </header>
   <main>
     <section class="intro screen-only">
