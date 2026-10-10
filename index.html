@@ -28,7 +28,7 @@
     <section class="intro screen-only">
       <p class="eyebrow">MNIEJ SZUKANIA. WIĘCEJ GRANIA.</p>
       <h1>Twój deck. Prosto z biblioteki.</h1>
-      <p>Wklej listę, pobierz obrazki i zabierz uporządkowany arkusz do swoich kart.</p>
+      <p>Wklej listę, wczytaj karty i zabierz uporządkowany arkusz do swojej biblioteki.</p>
     </section>
     <div class="workspace">
       <aside class="editor screen-only">
@@ -42,17 +42,17 @@
         <div class="settings">
           <h2><span>02</span> Arkusz</h2>
           <label for="density">Karty na stronie A4</label>
-          <select id="density"><option value="30">Do 30 kart · kompaktowo</option><option value="20">Do 20 kart · większe obrazki</option></select>
+          <select id="density"><option value="30">Do 30 kart · kompaktowo</option><option value="20">Do 20 kart · większe karty</option></select>
           <label class="checkbox"><input type="checkbox" id="basics" checked> Pokaż też basic landy na końcu</label>
           <label class="checkbox"><input type="checkbox" id="rarities" checked> Sprawdzaj wszystkie rzadkości karty</label>
           <label class="checkbox"><input type="checkbox" id="tokens" aria-describedby="token-help"> Dodaj tokeny do decka</label>
-          <p class="hint" id="token-help">Po jednym obrazku każdego rodzaju tokena powiązanego w Scryfall, bez sprawdzania kolekcji. To lista pomocnicza, nie liczba potrzebnych sztuk; kopie dowolnych kart mogą wymagać własnych znaczników.</p>
+          <p class="hint" id="token-help">Po jednej karcie każdego rodzaju tokena powiązanego w Scryfall, bez sprawdzania kolekcji. To lista pomocnicza, nie liczba potrzebnych sztuk; kopie dowolnych kart mogą wymagać własnych znaczników.</p>
           <p class="hint" id="token-status" role="status" aria-live="polite"></p>
-          <p class="hint">Powtórzenia to jeden obrazek z liczbą sztuk. Drukuj przez <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>P</kbd>, A4, skala 100%, bez nagłówków i stopek przeglądarki.</p>
+          <p class="hint">Powtórzenia pokazujemy jako jedną kartę z liczbą sztuk. Drukuj przez <kbd>⌘</kbd>/<kbd>Ctrl</kbd> + <kbd>P</kbd>, A4, skala 100%, bez nagłówków i stopek przeglądarki.</p>
         </div>
         <div class="local-database">
           <h2><span>03</span> Baza lokalna</h2>
-          <p class="hint">Przycisk poniżej pobiera tekstową bazę (kilkadziesiąt MB) i zapisuje ją w przeglądarce na kolejne wizyty. Wklejenie decklisty nie uruchamia pobierania bazy. Obrazki pozostają na CDN Scryfall.</p>
+          <p class="hint">Przycisk poniżej pobiera tekstową bazę (kilkadziesiąt MB) i zapisuje ją w przeglądarce na kolejne wizyty. Wklejenie decklisty nie uruchamia pobierania bazy. Grafiki kart pozostają na CDN Scryfall.</p>
           <button class="database-button" type="button" id="download-db">Pobierz bazę kart</button>
           <button class="text-button" type="button" id="cancel-db" hidden>Anuluj pobieranie</button>
           <p class="hint" id="database-status" role="status" aria-live="polite">Sprawdzanie lokalnej bazy…</p>
@@ -71,7 +71,7 @@
           <div class="colors" aria-label="Kolejność kolorów: zielony, czarny, niebieski, biały, czerwony, bezkolorowy, wielokolorowy"></div>
           <p class="hint">W każdej grupie kolorów: A-Z. Landy: tylko A-Z. Kolor karty, nie color identity; dla kart dwustronnych liczy się przód.</p>
         </details>
-        <p class="edition-note">Po włączeniu sprawdzania podpis pod obrazkiem pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z wydania na obrazku. Wybieramy najstarsze wydanie papierowe. W deckliście pomijamy Art Series, tokeny i dodatki spoza talii (np. emblematy, lochy i karty Planechase). Tokeny można dodać osobno opcją powyżej.</p>
+        <p class="edition-note">Po włączeniu sprawdzania podpis pod kartą pokazuje wszystkie rzadkości z papierowych wydań. Kolejność wynika z widocznego wydania karty. Wybieramy najstarsze wydanie papierowe. W deckliście pomijamy Art Series, tokeny i dodatki spoza talii (np. emblematy, lochy i karty Planechase). Tokeny można dodać osobno opcją powyżej.</p>
       </aside>
       <section class="preview" aria-label="Podgląd arkuszy">
         <div class="preview-toolbar screen-only"><h2>Twój arkusz</h2><span id="stats">A4 · gotowy do uporządkowania</span></div>
@@ -99,7 +99,7 @@
           <div class="empty-cards" aria-hidden="true"><i></i><i></i><i>◇</i></div>
           <p class="eyebrow">OD LISTY DO KOMPLETNEGO DECKA</p>
           <h2>Każda karta na swoim miejscu.</h2>
-          <p>Twoje obrazki pojawią się tutaj, posortowane<br>dokładnie tak jak karty w bibliotece.</p>
+          <p>Twoje karty pojawią się tutaj, posortowane<br>dokładnie tak jak karty w bibliotece.</p>
           <span class="empty-label">WKLEJ DECKLISTĘ, ABY ZACZĄĆ</span>
         </div>
       </section>
@@ -109,10 +109,10 @@
         <label class="sr-only" for="missing-list">Karty do przygotowania jako proxy</label>
         <textarea id="missing-list" readonly spellcheck="false"></textarea>
         <button class="database-button" id="copy-missing" type="button">Kopiuj listę</button>
-        <p class="hint" id="copy-status" role="status" aria-live="polite">Czarno-biały obrazek i przerywana ramka oznaczają kartę do przygotowania jako proxy.</p>
+        <p class="hint" id="copy-status" role="status" aria-live="polite">Czarno-biała karta z przerywaną ramką wymaga przygotowania jako proxy.</p>
       </aside>
     </div>
   </main>
-  <footer class="footer screen-only"><span>Lokalnie w Twojej przeglądarce. Bez konta i backendu.</span><span>Dane i obrazki: <a href="https://scryfall.com" target="_blank" rel="noreferrer">Scryfall ↗</a> · Magic: The Gathering © Wizards of the Coast</span></footer>
+  <footer class="footer screen-only"><span>Lokalnie w Twojej przeglądarce. Bez konta i backendu.</span><span>Dane i grafiki kart: <a href="https://scryfall.com" target="_blank" rel="noreferrer">Scryfall ↗</a> · Magic: The Gathering © Wizards of the Coast</span></footer>
 </body>
 </html>

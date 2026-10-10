@@ -503,7 +503,7 @@ function init() {
     const filtering = !!(filters.rarities.length || filters.colors.length || filters.proxy !== "all" || filters.name.trim());
     const history = card => localDatabase?.rarities.get(card.oracle_id) || card.rarities || rarityCache.get(card.oracle_id);
     const visible = candidates.filter(card => matchesCardFilters(card, filters, isProxy(card, collection, manualProxies, nonProxies), history(card)));
-    $("filter-summary").textContent = cards.length ? `Pokazano ${visible.length} z ${candidates.length} obrazków. Druk obejmuje widoczne karty; lista proxy po prawej dotyczy całego decka.` : "Najpierw ułóż karty z decklisty.";
+    $("filter-summary").textContent = cards.length ? `Pokazano ${visible.length} z ${candidates.length} kart. Druk obejmuje widoczne karty; lista proxy po prawej dotyczy całego decka.` : "Najpierw ułóż karty z decklisty.";
     $("filter-rarity-note").hidden = !filters.rarities.length || !candidates.some(card => !card.deckToken && !history(card)?.length);
     $("filter-empty").hidden = !cards.length || !!visible.length;
     const emptyMessage = filtering ? "Brak kart pasujących do filtrów. Zmień lub wyczyść filtry." : "Brak kart do pokazania. Wklej listę lub włącz basic landy.";
@@ -520,7 +520,7 @@ function init() {
     const pages = pageGroups.length;
     const total = visible.filter(card => !card.deckToken).reduce((sum, card) => sum + card.quantity, 0);
     const basics = cards.filter(card => cardGroup(card) === 5).reduce((sum, card) => sum + card.quantity, 0);
-    $("stats").textContent = `${visible.length} obrazków · ${total} szt. ${filtering ? "po filtrowaniu" : "w talii"}${$("tokens").checked ? ` · ${visible.filter(card => card.deckToken).length} rodz. tokenów` : ""} · ${pages} str. A4`;
+    $("stats").textContent = `${visible.length} kart · ${total} szt. ${filtering ? "po filtrowaniu" : "w talii"}${$("tokens").checked ? ` · ${visible.filter(card => card.deckToken).length} rodz. tokenów` : ""} · ${pages} str. A4`;
     $("sheets").replaceChildren();
     $("empty").hidden = !!cards.length;
     showProblems();
@@ -618,19 +618,19 @@ function init() {
         if (index) order.append(" → ");
         order.append(manaSymbol(color));
       });
-      order.append(" · A-Z w grupach · Obrazki: Scryfall");
+      order.append(" · A-Z w grupach · Karty: Scryfall");
       footer.append(order);
       sheet.append(heading, groups, footer);
       $("sheets").append(sheet);
     }
     if (busy) return;
-    $("status").textContent = visible.length ? "Wczytywanie obrazków - poczekaj przed drukowaniem…" : emptyMessage;
+    $("status").textContent = visible.length ? "Wczytywanie kart - poczekaj przed drukowaniem…" : emptyMessage;
     const loaded = await Promise.all(loading);
     if (run !== imageRun) return;
     const failed = loaded.filter(ok => !ok).length;
-    $("status").textContent = failed ? `Nie wczytano ${failed} obrazków. Sprawdź połączenie i kliknij ponownie „Ułóż karty”.` : visible.length ? `Obrazki gotowe. Możesz drukować.${!$("basics").checked && basics ? ` Pominięto basic landy: ${basics} szt.` : ""}` : emptyMessage;
+    $("status").textContent = failed ? `Nie wczytano ${failed} kart. Sprawdź połączenie i kliknij ponownie „Ułóż karty”.` : visible.length ? `Karty gotowe. Możesz drukować.${!$("basics").checked && basics ? ` Pominięto basic landy: ${basics} szt.` : ""}` : emptyMessage;
     if (failed) {
-      problems.push(`Nie wczytano ${failed} obrazków. Nazwy kart pozostają na arkuszu.`);
+      problems.push(`Nie wczytano ${failed} kart. Nazwy kart pozostają na arkuszu.`);
       showProblems();
     }
   }
