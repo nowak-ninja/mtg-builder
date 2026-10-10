@@ -58,6 +58,10 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .colors { display: flex; gap: 7px; margin: 17px 0 10px; }
 .colors .mana-symbol { font-size: 16px; }
 .edition-note { border-top: 1px solid #e5e8df; margin: 17px 0 0; padding-top: 15px; font-size: 10px; }
+.database-freshness { font-size: 11px; line-height: 1.6; padding: 8px 10px; border-left: 3px solid #839080; background: #eef1e9; color: #52634e; }
+.database-freshness:empty { display: none; }
+.database-freshness[data-state="current"] { border-color: #32754a; color: #265d3b; }
+.database-freshness[data-state="outdated"] { border-color: #a87528; color: #77521e; background: #fff4df; }
 .local-database { border-bottom: 1px solid #e5e8df; margin-bottom: 20px; padding-bottom: 12px; }
 .missing-panel { min-width: 0; padding: 23px; background: #fffefa; border: 1px solid #dce1d7; border-radius: 12px; }
 .missing-panel textarea { min-height: 250px; margin-bottom: 10px; }
@@ -94,11 +98,13 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .card { margin: 0; min-width: 0; position: relative; padding: 22px 4px 4px; border: 1px solid #d5ddd1; border-radius: 6px; break-inside: avoid; page-break-inside: avoid; }
 .proxy-toggle { position: absolute; top: 3px; right: 4px; display: flex; align-items: center; gap: 3px; font-size: 9px; color: #52634e; cursor: pointer; }
 .proxy-toggle input { width: 12px; height: 12px; margin: 0; }
-.card-link { position: relative; display: block; border-radius: 5px; }
+.card-link { position: relative; display: block; }
 .proxy .card-link > img { filter: grayscale(1); }
-.proxy { border-color: #9b9f9a; }
-.card-preview { position: fixed; z-index: 100; pointer-events: none; object-fit: contain; border-radius: 10px; box-shadow: 0 8px 32px #0006; }
-.card img { width: 100%; aspect-ratio: 488 / 680; object-fit: contain; display: block; border-radius: 5px; background: #f0f1eb; font-size: 10px; }
+.card.proxy { border-color: #956d37; border-style: dashed; outline: 1px dashed #956d37; background: #fff8e9; }
+.card-preview { position: fixed; z-index: 100; pointer-events: none; object-fit: contain; box-shadow: 0 8px 32px #0006; }
+/* Proportional clipping follows the scan corners at thumbnail and preview sizes. */
+.card img, .card-preview { border-radius: 6% / 4.3%; }
+.card img { width: 100%; max-width: 100%; height: auto; aspect-ratio: auto 488 / 680; object-fit: contain; display: block; margin-inline: auto; font-size: 10px; }
 .card figcaption { display: flex; align-items: center; min-height: 27px; }
 .card-name { flex: 1; min-width: 0; margin-left: auto; padding-left: 3px; text-align: right; font-weight: 650; font-size: 10px; line-height: 1.15; overflow-wrap: anywhere; }
 .card-markers { display: flex; align-items: center; gap: 2px; min-height: 44px; padding: 2px 0 5px; }
@@ -131,8 +137,10 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   [data-theme="dark"] input { accent-color: #9bd0ac; }
   [data-theme="dark"] :focus-visible { outline-color: #a4d7b3; }
   [data-theme="dark"] .quantity { background: #344939; color: #e3efdf; border-color: #718d72; }
-  [data-theme="dark"] .card img { background: #17211b; }
-  [data-theme="dark"] .proxy { border-color: #899589; }
+  [data-theme="dark"] .database-freshness { background: #29372d; color: #bfd0bf; border-color: #829d87; }
+  [data-theme="dark"] .database-freshness[data-state="current"] { color: #b4dfbd; border-color: #85bc94; }
+  [data-theme="dark"] .database-freshness[data-state="outdated"] { background: #3d3020; color: #edce98; border-color: #c79b52; }
+  [data-theme="dark"] .card.proxy { border-color: #d8b780; outline-color: #d8b780; background: #332d22; }
   [data-theme="dark"] .issues { background: #3d3020; color: #f1d8ad; border-color: #947146; }
 }
 @page { size: A4 portrait; margin: 8mm; }
@@ -151,7 +159,8 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   .card-markers > .mana-symbol { font-size: 8pt; }
   .card-initial { font-size: 9pt; }
   .card-rarities { max-height: 4.6mm; font-size: 5.2pt; line-height: 1.05; color: #222; }
-  .card img { height: var(--image-height); border-radius: 1mm; }
+  .card img { width: auto; height: var(--image-height); }
+  .card.proxy { border-color: #555; outline: .25mm dashed #555; background: transparent; }
   .card figcaption { height: 5.6mm; min-height: 0; }
   .card-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 6.2pt; line-height: 1.05; max-height: 4.6mm; }
   .quantity { top: 1mm; right: 1mm; padding: .3mm 1mm; font-size: 7pt; color: black; }

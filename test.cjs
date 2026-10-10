@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const CardDatabase = require('./database.js');
-const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds } = require('./app.js');
+const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds, databaseFreshness } = require('./app.js');
 
 const parsed = parseDeck(`Commander
 1 Atraxa, Praetors' Voice
@@ -289,3 +289,14 @@ excludedProxies.delete('Sol Ring');
 assert(isProxy({ name: 'Sol Ring' }, { has: () => false }, new Set(), excludedProxies));
 assert(!isProxy({ name: 'Sol Ring', deckToken: true }, { has: () => false }, new Set(['Sol Ring']), excludedProxies));
 console.log('OK: manual non-proxy override wins over collection and legacy selections; re-enabling and token exclusion.');
+
+const freshDatabase = { updatedAt: '2026-10-10T09:00:00Z', hasTokenData: true };
+assert.equal(databaseFreshness(null).state, 'missing');
+assert.equal(databaseFreshness(freshDatabase).state, 'unknown');
+assert.equal(databaseFreshness(freshDatabase, { updated_at: 'invalid' }).state, 'unknown');
+assert.equal(databaseFreshness({ ...freshDatabase, updatedAt: 'invalid' }, { updated_at: freshDatabase.updatedAt }).state, 'unknown');
+assert.equal(databaseFreshness(freshDatabase, { updated_at: '2026-10-10T11:00:00+02:00' }).state, 'current');
+assert.equal(databaseFreshness(freshDatabase, { updated_at: '2026-10-10T08:00:00Z' }).state, 'current');
+assert.equal(databaseFreshness(freshDatabase, { updated_at: '2026-10-10T10:00:00Z' }).state, 'outdated');
+assert.equal(databaseFreshness({ ...freshDatabase, hasTokenData: false }, { updated_at: freshDatabase.updatedAt }).state, 'outdated');
+console.log('OK: database freshness handles missing/offline/invalid metadata, timestamps, newer snapshots and legacy token data.');

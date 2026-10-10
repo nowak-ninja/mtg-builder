@@ -193,6 +193,19 @@ function paginateCards(cards, perPage) {
   return pages;
 }
 
+function databaseFreshness(database, metadata) {
+  if (!database) return { state: "missing", text: "Nie pobrano jeszcze bazy kart." };
+  const local = Date.parse(database.updatedAt);
+  const remote = Date.parse(metadata?.updated_at);
+  if (!Number.isFinite(local) || !Number.isFinite(remote)) {
+    return { state: "unknown", text: "Nie udało się sprawdzić aktualności. Zapisana baza nadal działa." };
+  }
+  if (!database.hasTokenData) return { state: "outdated", text: "Dostępna aktualizacja danych tokenów. Kliknij „Aktualizuj bazę kart”." };
+  return local >= remote
+    ? { state: "current", text: "Baza jest aktualna." }
+    : { state: "outdated", text: `Dostępna nowsza baza (${new Date(remote).toLocaleString("pl-PL", { dateStyle: "short", timeStyle: "short" })}). Kliknij „Aktualizuj bazę kart”.` };
+}
+
 function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
   const scale = Math.min(1, (viewportWidth - 24) / width, (viewportHeight - 24) / height);
   width *= scale;
@@ -205,7 +218,7 @@ function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
 }
 
 // Classic scripts also work when index.html is opened directly with file://.
-if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds };
+if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds, databaseFreshness };
 if (typeof document !== "undefined") init();
 
 function init() {
@@ -234,6 +247,7 @@ function init() {
   let localDatabase = null;
   let collection = null;
   let downloadController;
+  let freshnessRun = 0;
   let cards = [];
   let tokens = [];
   let problems = [];
@@ -289,11 +303,30 @@ function init() {
       ? `${localDatabase.count.toLocaleString("pl-PL")} wydań · baza z ${new Date(localDatabase.updatedAt).toLocaleDateString("pl-PL")}. Karty i rzadkości wyszukiwane lokalnie.`
       : "Bez lokalnej bazy - karty i rzadkości pobierane przez API.";
   }
+  function showDatabaseFreshness(metadata) {
+    const result = databaseFreshness(localDatabase, metadata);
+    $("database-freshness").dataset.state = result.state;
+    $("database-freshness").textContent = result.text;
+  }
+  async function checkDatabaseFreshness() {
+    const run = ++freshnessRun;
+    $("database-freshness").dataset.state = "checking";
+    $("database-freshness").textContent = "Sprawdzanie aktualności bazy…";
+    try {
+      const metadata = await request("https://api.scryfall.com/bulk-data/default_cards", { cache: "no-store" });
+      if (run === freshnessRun) showDatabaseFreshness(metadata);
+    } catch {
+      if (run === freshnessRun) showDatabaseFreshness();
+    }
+  }
   const databaseReady = cardDatabase.read().then(result => {
     localDatabase = result;
     $("database-status").textContent = databaseSummary();
     $("download-db").textContent = result ? "Aktualizuj bazę kart" : "Pobierz bazę kart";
+    if (result) void checkDatabaseFreshness();
+    else showDatabaseFreshness();
   }).catch(() => {
+    $("database-freshness").hidden = true;
     $("database-status").textContent = "Pamięć bazy jest niedostępna. Możesz nadal korzystać z API. Spróbuj otworzyć stronę przez localhost lub GitHub Pages.";
   });
   const collectionReady = cardDatabase.readCollection().then(snapshot => {
@@ -352,9 +385,15 @@ function init() {
     $("cancel-db").hidden = false;
     await databaseReady;
     $("database-status").textContent = "Sprawdzanie aktualnej wersji bazy Scryfall…";
+    // Ignore a slower startup check once a manual update has begun.
+    ++freshnessRun;
+    $("database-freshness").dataset.state = "checking";
+    $("database-freshness").textContent = "Sprawdzanie aktualności bazy…";
+    let metadata;
     try {
-      const metadata = await request("https://api.scryfall.com/bulk-data/default_cards", { signal: downloadController.signal });
-      if (metadata.updated_at !== localDatabase?.updatedAt || !localDatabase?.hasTokenData) {
+      metadata = await request("https://api.scryfall.com/bulk-data/default_cards", { signal: downloadController.signal, cache: "no-store" });
+      if (databaseFreshness(localDatabase, metadata).state !== "current") {
+        $("database-freshness").textContent = "Aktualizowanie bazy…";
         localDatabase = await cardDatabase.download(metadata, (bytes, total, count, saving) => {
           $("database-status").textContent = saving
             ? `Zapisywanie ${count.toLocaleString("pl-PL")} wydań w przeglądarce…`
@@ -370,6 +409,7 @@ function init() {
     } catch (error) {
       $("database-status").textContent = `${downloadController.signal.aborted ? "Anulowano pobieranie." : `Nie zapisano bazy: ${error.message}.`} ${databaseSummary()}`;
     } finally {
+      showDatabaseFreshness(metadata);
       $("cancel-db").hidden = true;
       downloadController = null;
       setBusy(false);

@@ -56,6 +56,7 @@
           <button class="database-button" type="button" id="download-db">Pobierz bazę kart</button>
           <button class="text-button" type="button" id="cancel-db" hidden>Anuluj pobieranie</button>
           <p class="hint" id="database-status" role="status" aria-live="polite">Sprawdzanie lokalnej bazy…</p>
+          <p class="database-freshness" id="database-freshness" role="status" aria-live="polite"></p>
         </div>
         <div class="local-database">
           <h2><span>04</span> Twoja kolekcja</h2>
@@ -91,7 +92,7 @@
         <label class="sr-only" for="missing-list">Karty do przygotowania jako proxy</label>
         <textarea id="missing-list" readonly spellcheck="false"></textarea>
         <button class="database-button" id="copy-missing" type="button">Kopiuj listę</button>
-        <p class="hint" id="copy-status" role="status" aria-live="polite">Czarno-biały obrazek oznacza kartę do przygotowania jako proxy.</p>
+        <p class="hint" id="copy-status" role="status" aria-live="polite">Czarno-biały obrazek i przerywana ramka oznaczają kartę do przygotowania jako proxy.</p>
       </aside>
     </div>
   </main>
