@@ -103,7 +103,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .card.proxy { border-color: #956d37; border-style: dashed; outline: 1px dashed #956d37; background: #fff8e9; }
 .card-preview { position: fixed; z-index: 100; pointer-events: none; object-fit: contain; box-shadow: 0 8px 32px #0006; }
 /* Proportional clipping follows the scan corners at thumbnail and preview sizes. */
-.card img, .card-preview { border-radius: 6% / 4.3%; }
+.card img, .card-preview { border-radius: 8% / 5.75%; }
 .card img { width: 100%; max-width: 100%; height: auto; aspect-ratio: auto 488 / 680; object-fit: contain; display: block; margin-inline: auto; font-size: 10px; }
 .card figcaption { display: flex; align-items: center; min-height: 27px; }
 .card-name { flex: 1; min-width: 0; margin-left: auto; padding-left: 3px; text-align: right; font-weight: 650; font-size: 10px; line-height: 1.15; overflow-wrap: anywhere; }
