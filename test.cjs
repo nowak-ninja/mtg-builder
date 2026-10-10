@@ -280,3 +280,12 @@ selectedProxies.delete('Sol Ring');
 assert(!isProxy({ name: 'Sol Ring' }, { has: () => true }, selectedProxies));
 assert(isProxy({ name: 'Sol Ring' }, { has: () => false }, selectedProxies));
 console.log('OK: manual proxies without collection, owned-card override, deselection and automatic missing-card proxies.');
+
+const excludedProxies = new Set(['Sol Ring']);
+assert(!isProxy({ name: 'Sol Ring' }, { has: () => false }, new Set(), excludedProxies));
+assert(!isProxy({ name: 'Sol Ring' }, { has: () => false }, new Set(['Sol Ring']), excludedProxies));
+assert(isProxy({ name: 'Mystic Remora' }, { has: () => false }, new Set(), excludedProxies));
+excludedProxies.delete('Sol Ring');
+assert(isProxy({ name: 'Sol Ring' }, { has: () => false }, new Set(), excludedProxies));
+assert(!isProxy({ name: 'Sol Ring', deckToken: true }, { has: () => false }, new Set(['Sol Ring']), excludedProxies));
+console.log('OK: manual non-proxy override wins over collection and legacy selections; re-enabling and token exclusion.');

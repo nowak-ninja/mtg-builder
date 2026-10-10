@@ -104,8 +104,8 @@ function cardCaption(card, includeHistory = true) {
   return `${label}${includeHistory && !card.rarities ? " (tylko to wydanie)" : ""}`;
 }
 
-function isProxy(card, collection, manualProxies) {
-  return !card.deckToken && (manualProxies.has(card.name) || Boolean(collection && !collection.has(card)));
+function isProxy(card, collection, manualProxies, nonProxies) {
+  return !card.deckToken && !nonProxies?.has(card.name) && (manualProxies.has(card.name) || Boolean(collection && !collection.has(card)));
 }
 
 async function loadTokens(cards, request, localDatabase, cache) {
@@ -226,6 +226,11 @@ function init() {
     const saved = JSON.parse(localStorage.getItem("mtg-builder-proxies") || "[]");
     if (Array.isArray(saved)) manualProxies = new Set(saved.filter(name => typeof name === "string"));
   } catch { /* Manual selection still works without storage. */ }
+  let nonProxies = new Set();
+  try {
+    const saved = JSON.parse(localStorage.getItem("mtg-builder-non-proxies") || "[]");
+    if (Array.isArray(saved)) nonProxies = new Set(saved.filter(name => typeof name === "string"));
+  } catch { /* Manual overrides still work without storage. */ }
   let localDatabase = null;
   let collection = null;
   let downloadController;
@@ -272,6 +277,7 @@ function init() {
     const bounds = previewBounds(image.getBoundingClientRect(), image.naturalWidth, image.naturalHeight, innerWidth, innerHeight);
     for (const [property, value] of Object.entries(bounds)) preview.style[property] = `${value}px`;
     preview.src = image.currentSrc;
+    preview.style.filter = getComputedStyle(image).filter;
     preview.hidden = false;
   };
   window.addEventListener("scroll", hidePreview, true);
@@ -302,7 +308,7 @@ function init() {
   function setBusy(value) {
     busy = value;
     for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "tokens", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
-    document.querySelectorAll(".proxy-toggle input").forEach(input => { input.disabled = value || input.dataset.automatic === "true"; });
+    document.querySelectorAll(".proxy-toggle input").forEach(input => { input.disabled = value; });
   }
   $("upload-collection").addEventListener("click", () => $("collection-file").click());
   $("collection-file").addEventListener("change", async () => {
@@ -409,11 +415,11 @@ function init() {
     const run = ++imageRun;
     const visible = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
     if ($("tokens").checked) visible.push(...tokens);
-    const missing = cards.filter(card => isProxy(card, collection, manualProxies)).sort(compareCards);
+    const missing = cards.filter(card => isProxy(card, collection, manualProxies, nonProxies)).sort(compareCards);
     $("missing-panel").hidden = !missing.length;
     document.querySelector(".workspace").classList.toggle("has-missing", !!missing.length);
     $("missing-list").value = missing.map(card => `${card.quantity} ${card.name}`).join("\n");
-    $("missing-summary").replaceChildren("Karty do proxy: ", make("strong", "", String(missing.length)), ". Braki w kolekcji i ręcznie zaznaczone karty, także ukryte basic landy.");
+    $("missing-summary").replaceChildren("Karty do proxy: ", make("strong", "", String(missing.length)), ". Uwzględnia ręczne zaznaczenia i odznaczenia oraz ukryte basic landy.");
     clearTimeout(copyStatusTimer);
     $("copy-status").replaceChildren(...copyHint);
     const perPage = Number($("density").value);
@@ -458,8 +464,8 @@ function init() {
           const markers = make("div", "card-markers");
           const initial = make("strong", "card-initial", [...card.name.trim()][0].toLocaleUpperCase("en"));
           initial.setAttribute("aria-label", `Litera: ${initial.textContent}`);
-          markers.append(manaSymbol(cardColor(card)), initial, make("span", "card-rarities", cardCaption(card, $("rarities").checked)));
-          caption.append(make("span", "card-name", card.name));
+          markers.append(manaSymbol(cardColor(card)), initial, make("span", "card-name", card.name));
+          caption.append(make("span", "card-rarities", cardCaption(card, $("rarities").checked)));
           const link = make("a", "card-link");
           link.href = `https://scryfall.com/card/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}`;
           link.target = "_blank";
@@ -475,33 +481,36 @@ function init() {
           const automaticProxy = Boolean(collection && !collection.has(card));
           if (!card.deckToken) {
             const proxyToggle = make("label", "proxy-toggle screen-only");
-            proxyToggle.title = automaticProxy ? "Brak w kolekcji - proxy oznaczone automatycznie" : "Oznacz kartę jako proxy";
+            proxyToggle.title = "Zaznacz lub odznacz kartę jako proxy";
             const proxyInput = make("input", "");
             proxyInput.type = "checkbox";
-            proxyInput.checked = isProxy(card, collection, manualProxies);
-            proxyInput.disabled = busy || automaticProxy;
-            proxyInput.dataset.automatic = String(automaticProxy);
+            proxyInput.checked = isProxy(card, collection, manualProxies, nonProxies);
+            proxyInput.disabled = busy;
             proxyInput.dataset.card = card.id;
             proxyInput.setAttribute("aria-label", `${card.name} - proxy${automaticProxy ? " (brak w kolekcji)" : ""}`);
             proxyInput.addEventListener("change", () => {
-              if (proxyInput.checked) manualProxies.add(card.name);
-              else manualProxies.delete(card.name);
-              try { localStorage.setItem("mtg-builder-proxies", JSON.stringify([...manualProxies])); } catch { /* Selection remains active for this visit. */ }
+              if (proxyInput.checked) {
+                manualProxies.add(card.name);
+                nonProxies.delete(card.name);
+              } else {
+                manualProxies.delete(card.name);
+                nonProxies.add(card.name);
+              }
+              try {
+                localStorage.setItem("mtg-builder-proxies", JSON.stringify([...manualProxies]));
+                localStorage.setItem("mtg-builder-non-proxies", JSON.stringify([...nonProxies]));
+              } catch { /* Selection remains active for this visit. */ }
               render();
               document.querySelector(`.proxy-toggle input[data-card="${CSS.escape(card.id)}"]`)?.focus({ preventScroll: true });
             });
             proxyToggle.append(proxyInput, "Proxy");
             figure.append(proxyToggle);
           }
-          if (isProxy(card, collection, manualProxies)) {
+          if (isProxy(card, collection, manualProxies, nonProxies)) {
             const reason = automaticProxy ? "Brak w kolekcji - proxy" : "Ręcznie oznaczone proxy";
             figure.classList.add("proxy");
             figure.title = reason;
             link.setAttribute("aria-label", `${card.name} - ${reason} - otwórz na Scryfall w nowej karcie`);
-            const overlay = make("div", "proxy-overlay");
-            overlay.setAttribute("aria-hidden", "true");
-            overlay.innerHTML = '<svg viewBox="0 0 100 100" preserveAspectRatio="none"><path d="M0 0L100 100M100 0L0 100"/><text x="50" y="94" text-anchor="middle" textLength="80" lengthAdjust="spacingAndGlyphs">P</text></svg>';
-            link.append(overlay);
           }
           grid.append(figure);
         });
