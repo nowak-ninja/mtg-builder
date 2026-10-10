@@ -115,7 +115,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .empty-cards { height: 110px; width: 150px; position: relative; }
 .empty-cards i { position: absolute; width: 73px; height: 104px; top: 0; left: 37px; border: 1px solid #93a88c; border-radius: 7px; background: #e5eadd; }
 .empty-cards i:first-child { transform: translateX(-27px) rotate(-17deg); }.empty-cards i:nth-child(2) { transform: translateX(27px) rotate(17deg); }.empty-cards i:last-child { display: grid; place-items: center; background: #f1f2e9; font-style: normal; font-size: 44px; color: #7f9676; box-shadow: 0 3px 12px #30452d0a; }
-.sheet { background: white; padding: 24px; margin: 0 auto 24px; max-width: 830px; box-shadow: 0 3px 14px #2536240c; border: 1px solid #dce1d7; }
+.sheet { background: white; padding: 24px; margin: 0 auto 24px; box-shadow: 0 3px 14px #2536240c; border: 1px solid #dce1d7; }
 .sheet-heading, .sheet-footer { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: #677362; }
 .sheet-heading { padding-bottom: 13px; border-bottom: 1px solid #e3e6df; margin-bottom: 14px; }.sheet-heading strong { color: #334b3a; }.sheet-footer { margin-top: 15px; font-size: 8px; }
 .card-grid { display: grid; grid-template-columns: repeat(var(--columns, 6), minmax(0, 1fr)); gap: 12px 8px; align-items: start; }
