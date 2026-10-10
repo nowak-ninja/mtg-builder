@@ -79,7 +79,10 @@
           <div class="filter-heading"><h2>Filtry kart</h2><button id="reset-filters" class="text-button" type="button">Wyczyść filtry</button></div>
           <div class="filter-fields">
             <label>Nazwa karty<input id="filter-name" type="search" placeholder="Wpisz fragment nazwy…" autocomplete="off" spellcheck="false"></label>
-            <label>Proxy<select id="filter-proxy" autocomplete="off"><option value="all">Wszystkie karty</option><option value="proxy">Tylko proxy</option><option value="non-proxy">Bez proxy</option></select></label>
+            <fieldset id="filter-proxy" class="filter-proxy"><legend>Proxy</legend><div class="filter-options">
+              <label class="filter-option"><input type="checkbox" value="proxy" autocomplete="off"> Proxy</label>
+              <label class="filter-option"><input type="checkbox" value="non-proxy" autocomplete="off"> Bez proxy</label>
+            </div></fieldset>
           </div>
           <fieldset><legend>Rarity</legend><div id="filter-rarities" class="filter-options"></div></fieldset>
           <fieldset><legend>Kolory</legend><div id="filter-colors" class="filter-options"></div></fieldset>

@@ -281,6 +281,16 @@ function init() {
     if (text !== undefined) node.textContent = text;
     return node;
   };
+  const makeRarityText = (tag, className, text) => {
+    const node = make(tag, className);
+    for (const part of text.split(/\b(common|uncommon|rare|mythic|special|bonus)\b/gi)) {
+      node.append(RARITIES.includes(part.toLowerCase()) ? make("span", `rarity rarity-${part.toLowerCase()}`, part) : part);
+    }
+    return node;
+  };
+  document.querySelectorAll(".sorting li").forEach(item => {
+    item.replaceChildren(makeRarityText("span", "", item.textContent));
+  });
   const manaSymbol = color => {
     const symbol = make("span", `mana-symbol mana-${color.toLowerCase()}`);
     symbol.title = { G: "Zielony", B: "Czarny", U: "Niebieski", W: "Biały", R: "Czerwony", C: "Bezkolorowy", M: "Wielokolorowy" }[color];
@@ -296,19 +306,18 @@ function init() {
       input.type = "checkbox";
       input.value = value;
       input.autocomplete = "off";
-      label.append(input, id === "filter-colors" ? manaSymbol(value) : value[0].toUpperCase() + value.slice(1));
+      label.append(input, id === "filter-colors" ? manaSymbol(value) : makeRarityText("span", "", value[0].toUpperCase() + value.slice(1)));
       if (id === "filter-colors") input.setAttribute("aria-label", label.lastChild.title);
       $(id).append(label);
     }
   }
   // Start fresh even if the browser restores native form controls on reload.
   $("filter-name").value = "";
-  $("filter-proxy").value = "all";
+  $("card-filters").querySelectorAll('input[type="checkbox"]').forEach(input => { input.checked = false; });
   $("card-filters").addEventListener("input", () => { if (!busy) render(); });
   $("reset-filters").addEventListener("click", () => {
     $("card-filters").querySelectorAll('input[type="checkbox"]').forEach(input => { input.checked = false; });
     $("filter-name").value = "";
-    $("filter-proxy").value = "all";
     render();
   });
   const preview = make("img", "card-preview screen-only");
@@ -488,7 +497,8 @@ function init() {
     const candidates = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
     if ($("tokens").checked) candidates.push(...tokens);
     const selected = id => [...$(id).querySelectorAll("input:checked")].map(input => input.value);
-    const filters = { rarities: selected("filter-rarities"), colors: selected("filter-colors"), proxy: $("filter-proxy").value, name: $("filter-name").value };
+    const proxySelection = selected("filter-proxy");
+    const filters = { rarities: selected("filter-rarities"), colors: selected("filter-colors"), proxy: proxySelection.length === 1 ? proxySelection[0] : "all", name: $("filter-name").value };
     const filtering = !!(filters.rarities.length || filters.colors.length || filters.proxy !== "all" || filters.name.trim());
     const history = card => localDatabase?.rarities.get(card.oracle_id) || card.rarities || rarityCache.get(card.oracle_id);
     const visible = candidates.filter(card => matchesCardFilters(card, filters, isProxy(card, collection, manualProxies, nonProxies), history(card)));
@@ -524,7 +534,8 @@ function init() {
       const groups = make("div", "sheet-groups");
       for (const segment of pageGroups[page]) {
         const section = make("section", "card-group");
-        const groupHeading = make("h3", "card-group-heading", GROUP_LABELS[segment.group]);
+        const groupHeading = make("h3", "card-group-heading");
+        groupHeading.append(makeRarityText("span", "group-label", GROUP_LABELS[segment.group]));
         if (segment.continued) groupHeading.append(make("span", "", "ciąg dalszy"));
         const grid = make("div", "card-grid");
         segment.cards.forEach(card => {
@@ -548,7 +559,7 @@ function init() {
           const initial = make("strong", "card-initial", [...card.name.trim()][0].toLocaleUpperCase("en"));
           initial.setAttribute("aria-label", `Litera: ${initial.textContent}`);
           markers.append(manaSymbol(cardColor(card)), initial, make("span", "card-name", card.name));
-          caption.append(make("span", "card-rarities", cardCaption(card, $("rarities").checked)));
+          caption.append(makeRarityText("span", "card-rarities", cardCaption(card, $("rarities").checked)));
           const link = make("a", "card-link");
           link.href = `https://scryfall.com/card/${encodeURIComponent(card.set)}/${encodeURIComponent(card.collector_number)}`;
           link.target = "_blank";
@@ -700,4 +711,6 @@ function init() {
     setBusy(false);
     render();
   });
+
+  if ($("decklist").value.trim()) $("deck-form").requestSubmit();
 }

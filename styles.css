@@ -15,6 +15,13 @@
 .mana-r::before { content: "\e603"; }
 .mana-c::before { content: "\e904"; }
 .mana-m::before { content: "\e985"; }
+.rarity { font-weight: 650; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+.rarity-common { color: #343434; }
+.rarity-uncommon { color: #65717b; }
+.rarity-rare { color: #86631d; }
+.rarity-mythic { color: #b34217; }
+.rarity-special { color: #805499; }
+.rarity-bonus { color: #7c6239; }
 :root { color-scheme: light; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color: #263a30; background: #f5f5ef; font-synthesis: none; }
 * { box-sizing: border-box; }
 body { margin: 0; }
@@ -80,8 +87,9 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .filter-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
 .filter-fields { display: flex; flex-wrap: wrap; gap: 12px; }
 .filter-fields > label { flex: 1 1 160px; min-width: 0; font-size: 11px; }
-.filter-fields input, .filter-fields select { display: block; width: 100%; min-width: 0; margin-top: 5px; border: 1px solid #d8dfd3; border-radius: 6px; padding: 9px; background: #f7f8f2; color: #263a30; font: inherit; }
+.filter-fields input[type="search"] { display: block; width: 100%; min-width: 0; margin-top: 5px; border: 1px solid #d8dfd3; border-radius: 6px; padding: 9px; background: #f7f8f2; color: #263a30; font: inherit; }
 .card-filters fieldset { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+.card-filters .filter-proxy { flex: 0 0 auto; margin: 0; }
 .card-filters legend { font-size: 11px; margin-bottom: 6px; padding: 0; }
 .filter-options { display: flex; flex-wrap: wrap; gap: 6px; }
 .filter-option { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #dce1d7; border-radius: 6px; font-size: 11px; cursor: pointer; }
@@ -111,7 +119,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .card-grid { display: grid; grid-template-columns: repeat(var(--columns, 6), minmax(0, 1fr)); gap: 12px 8px; align-items: start; }
 .sheet-groups { display: grid; gap: 20px; }
 .card-group-heading { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 6px 8px; border-bottom: 3px solid #45633f; background: #e6ecdf; font-size: 12px; font-weight: 750; color: #263e2c; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-.card-group-heading > span { font-size: 9px; font-weight: normal; }
+.card-group-heading > span:not(.group-label) { font-size: 9px; font-weight: normal; }
 .card { margin: 0; min-width: 0; position: relative; padding: 22px 4px 4px; border: 1px solid var(--card-border, #8b979b); background: var(--card-tint, #f1f4f5); border-radius: 6px; print-color-adjust: exact; -webkit-print-color-adjust: exact; break-inside: avoid; page-break-inside: avoid; }
 .card[data-color="G"] { --card-border: #4f875d; --card-tint: #eff7ef; --card-dark: #263e2d; }
 .card[data-color="B"] { --card-border: #746879; --card-tint: #f1edf3; --card-dark: #332d3b; }
@@ -144,6 +152,12 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 @media (max-width: 720px) { .topbar { height: 66px; }.topbar > .eyebrow { display: none; }main { padding-top: 24px; }.workspace { display: block; }.editor { margin-bottom: 28px; }textarea { min-height: 190px; }.empty { min-height: 400px; }.footer { flex-direction: column; gap: 6px; }.card-grid { grid-template-columns: repeat(3,minmax(0,1fr)); }.card-name { font-size: 11px; }.card-rarities { font-size: 8px; }.sheet-heading { font-size: 9px; }.preview-toolbar { flex-wrap: wrap; } }
 /* Screen-only palette keeps printed sheets light regardless of the saved theme. */
 @media screen {
+  [data-theme="dark"] .rarity-common { color: #e3e7e7; }
+  [data-theme="dark"] .rarity-uncommon { color: #b4c4d0; }
+  [data-theme="dark"] .rarity-rare { color: #e3c365; }
+  [data-theme="dark"] .rarity-mythic { color: #ffa371; }
+  [data-theme="dark"] .rarity-special { color: #ccb0f0; }
+  [data-theme="dark"] .rarity-bonus { color: #d2b188; }
   :root[data-theme="dark"] { color-scheme: dark; color: #e1e9df; background: #151c18; }
   [data-theme="dark"] :is(.editor, .missing-panel, .sheet, select) { background: #202a24; color: #e1e9df; border-color: #425247; }
   [data-theme="dark"] :is(textarea, .database-button) { background: #17211b; color: #d9e7d9; border-color: #526857; }
@@ -165,7 +179,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   [data-theme="dark"] .database-freshness[data-state="current"] { color: #b4dfbd; border-color: #85bc94; }
   [data-theme="dark"] .database-freshness[data-state="outdated"] { background: #3d3020; color: #edce98; border-color: #c79b52; }
   [data-theme="dark"] .card-filters { background: #202a24; border-color: #425247; }
-  [data-theme="dark"] .filter-fields :is(input, select) { background: #17211b; color: #d9e7d9; border-color: #526857; }
+  [data-theme="dark"] .filter-fields input[type="search"] { background: #17211b; color: #d9e7d9; border-color: #526857; }
   [data-theme="dark"] .filter-fields input::placeholder { color: #9aa99c; }
   [data-theme="dark"] .filter-option { border-color: #526857; }
   [data-theme="dark"] .filter-option:has(input:checked) { background: #304735; border-color: #87af7f; }
@@ -183,7 +197,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   .sheet-heading { font-size: 8pt; height: 8mm; padding: 0 0 2mm; margin: 0; align-items: center; border: 0; }
   .sheet-groups { gap: 2mm; }
   .card-group-heading { height: 4mm; margin: 0 0 1mm; padding: .15mm 1mm; align-items: center; border-bottom: .6mm solid #45633f; font-size: 7.5pt; line-height: 1; break-after: avoid; }
-  .card-group-heading > span { font-size: 6pt; }
+  .card-group-heading > span:not(.group-label) { font-size: 6pt; }
   .card-grid { grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); gap: 1.5mm 2mm; }
   .card { height: var(--card-height); padding: .5mm; border: .2mm solid var(--card-border, #8b979b); border-radius: 1mm; }
   .card-markers { height: 7mm; min-height: 0; padding: 0 0 .5mm; gap: .3mm; }
