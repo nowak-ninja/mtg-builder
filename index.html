@@ -75,8 +75,21 @@
       </aside>
       <section class="preview" aria-label="Podgląd arkuszy">
         <div class="preview-toolbar screen-only"><h2>Twój arkusz</h2><span id="stats">A4 · gotowy do uporządkowania</span></div>
+        <section id="card-filters" class="card-filters screen-only" aria-label="Filtry kart">
+          <div class="filter-heading"><h2>Filtry kart</h2><button id="reset-filters" class="text-button" type="button">Wyczyść filtry</button></div>
+          <div class="filter-fields">
+            <label>Nazwa karty<input id="filter-name" type="search" placeholder="Wpisz fragment nazwy…" autocomplete="off" spellcheck="false"></label>
+            <label>Proxy<select id="filter-proxy" autocomplete="off"><option value="all">Wszystkie karty</option><option value="proxy">Tylko proxy</option><option value="non-proxy">Bez proxy</option></select></label>
+          </div>
+          <fieldset><legend>Rarity</legend><div id="filter-rarities" class="filter-options"></div></fieldset>
+          <fieldset><legend>Kolory</legend><div id="filter-colors" class="filter-options"></div></fieldset>
+          <p class="hint">Możesz zaznaczyć kilka opcji. Brak zaznaczeń = wszystkie. Wielokolorowe są osobno. Filtry resetują się po odświeżeniu strony.</p>
+          <p id="filter-summary" class="hint" role="status" aria-live="polite">Najpierw ułóż karty z decklisty.</p>
+          <p id="filter-rarity-note" class="hint" hidden>Nie wszystkie karty mają pobraną historię rarity. Dla nich filtr uwzględnia tylko znane wydanie. Włącz „Sprawdzaj wszystkie rzadkości karty” lub pobierz bazę lokalną i ponownie ułóż karty.</p>
+        </section>
         <p id="status" class="status screen-only" role="status" aria-live="polite"></p>
         <div id="issues" class="issues" hidden></div>
+        <p id="filter-empty" class="filter-empty" hidden></p>
         <div id="sheets"></div>
         <div id="empty" class="empty screen-only">
           <div class="empty-cards" aria-hidden="true"><i></i><i></i><i>◇</i></div>

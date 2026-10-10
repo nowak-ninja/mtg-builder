@@ -76,6 +76,23 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .database-button { width: 100%; border: 1px solid #afbfaa; border-radius: 6px; padding: 10px; background: #f7f8f2; color: #224e3c; font-size: 12px; }
 #cancel-db { margin-top: 8px; }
 .preview { min-width: 0; }
+.card-filters { margin-bottom: 16px; padding: 16px; border: 1px solid #dce1d7; border-radius: 10px; background: #fffefa; }
+.filter-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.filter-fields { display: flex; flex-wrap: wrap; gap: 12px; }
+.filter-fields > label { flex: 1 1 160px; min-width: 0; font-size: 11px; }
+.filter-fields input, .filter-fields select { display: block; width: 100%; min-width: 0; margin-top: 5px; border: 1px solid #d8dfd3; border-radius: 6px; padding: 9px; background: #f7f8f2; color: #263a30; font: inherit; }
+.card-filters fieldset { border: 0; padding: 0; margin: 12px 0 0; min-width: 0; }
+.card-filters legend { font-size: 11px; margin-bottom: 6px; padding: 0; }
+.filter-options { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter-option { display: inline-flex; align-items: center; gap: 5px; padding: 6px 8px; border: 1px solid #dce1d7; border-radius: 6px; font-size: 11px; cursor: pointer; }
+.filter-option input { margin: 0; }
+.filter-option:has(input:checked) { border-color: #48745a; background: #e5efdf; }
+.filter-option:has(input:focus-visible) { outline: 2px solid #397752; outline-offset: 2px; }
+.card-filters .hint { margin: 10px 0 0; }
+#filter-summary { font-weight: 600; }
+#filter-rarity-note { color: #77521e; }
+.filter-empty { padding: 24px; text-align: center; border: 1px dashed #859383; border-radius: 8px; }
+
 .preview-toolbar { display: flex; justify-content: space-between; align-items: center; min-height: 30px; gap: 12px; margin-bottom: 16px; }
 #stats { font-size: 11px; color: #6c7b6c; text-align: right; }
 .status:empty { display: none; }.status { font-size: 12px; color: #426c50; line-height: 1.5; margin: 0 0 15px; }
@@ -147,6 +164,12 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   [data-theme="dark"] .database-freshness { background: #29372d; color: #bfd0bf; border-color: #829d87; }
   [data-theme="dark"] .database-freshness[data-state="current"] { color: #b4dfbd; border-color: #85bc94; }
   [data-theme="dark"] .database-freshness[data-state="outdated"] { background: #3d3020; color: #edce98; border-color: #c79b52; }
+  [data-theme="dark"] .card-filters { background: #202a24; border-color: #425247; }
+  [data-theme="dark"] .filter-fields :is(input, select) { background: #17211b; color: #d9e7d9; border-color: #526857; }
+  [data-theme="dark"] .filter-fields input::placeholder { color: #9aa99c; }
+  [data-theme="dark"] .filter-option { border-color: #526857; }
+  [data-theme="dark"] .filter-option:has(input:checked) { background: #304735; border-color: #87af7f; }
+  [data-theme="dark"] #filter-rarity-note { color: #edce98; }
   [data-theme="dark"] .card { background: var(--card-dark, #30393d); }
   [data-theme="dark"] .issues { background: #3d3020; color: #f1d8ad; border-color: #947146; }
 }

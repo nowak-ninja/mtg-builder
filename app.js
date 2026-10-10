@@ -104,6 +104,14 @@ function cardCaption(card, includeHistory = true) {
   return `${label}${includeHistory && !card.rarities ? " (tylko to wydanie)" : ""}`;
 }
 
+function matchesCardFilters(card, filters, proxy, history = card.rarities) {
+  const rarities = new Set([card.rarity, ...(history || [])]);
+  return (!filters.rarities.length || filters.rarities.some(rarity => rarities.has(rarity)))
+    && (!filters.colors.length || filters.colors.includes(cardColor(card)))
+    && (filters.proxy === "all" || (filters.proxy === "proxy" ? proxy : !proxy))
+    && card.name.toLocaleLowerCase("en").includes(filters.name.trim().toLocaleLowerCase("en"));
+}
+
 function isProxy(card, collection, manualProxies, nonProxies) {
   return !card.deckToken && !nonProxies?.has(card.name) && (manualProxies.has(card.name) || Boolean(collection && !collection.has(card)));
 }
@@ -219,7 +227,7 @@ function previewBounds(rect, width, height, viewportWidth, viewportHeight) {
 }
 
 // Classic scripts also work when index.html is opened directly with file://.
-if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds, databaseFreshness };
+if (typeof module !== "undefined") module.exports = { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds, databaseFreshness, matchesCardFilters };
 if (typeof document !== "undefined") init();
 
 function init() {
@@ -281,6 +289,28 @@ function init() {
     return symbol;
   };
   document.querySelector(".colors").append(...COLOR_ORDER.map(manaSymbol));
+  for (const [id, values] of [["filter-rarities", RARITIES], ["filter-colors", COLOR_ORDER]]) {
+    for (const value of values) {
+      const label = make("label", "filter-option");
+      const input = make("input", "");
+      input.type = "checkbox";
+      input.value = value;
+      input.autocomplete = "off";
+      label.append(input, id === "filter-colors" ? manaSymbol(value) : value[0].toUpperCase() + value.slice(1));
+      if (id === "filter-colors") input.setAttribute("aria-label", label.lastChild.title);
+      $(id).append(label);
+    }
+  }
+  // Start fresh even if the browser restores native form controls on reload.
+  $("filter-name").value = "";
+  $("filter-proxy").value = "all";
+  $("card-filters").addEventListener("input", () => { if (!busy) render(); });
+  $("reset-filters").addEventListener("click", () => {
+    $("card-filters").querySelectorAll('input[type="checkbox"]').forEach(input => { input.checked = false; });
+    $("filter-name").value = "";
+    $("filter-proxy").value = "all";
+    render();
+  });
   const preview = make("img", "card-preview screen-only");
   preview.alt = "";
   preview.setAttribute("aria-hidden", "true");
@@ -342,6 +372,7 @@ function init() {
   function setBusy(value) {
     busy = value;
     for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "tokens", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
+    $("card-filters").querySelectorAll("input, select, button").forEach(input => { input.disabled = value; });
     document.querySelectorAll(".proxy-toggle input").forEach(input => { input.disabled = value; });
   }
   $("upload-collection").addEventListener("click", () => $("collection-file").click());
@@ -454,8 +485,18 @@ function init() {
   async function render() {
     hidePreview();
     const run = ++imageRun;
-    const visible = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
-    if ($("tokens").checked) visible.push(...tokens);
+    const candidates = cards.filter(card => $("basics").checked || cardGroup(card) !== 5).sort(compareCards);
+    if ($("tokens").checked) candidates.push(...tokens);
+    const selected = id => [...$(id).querySelectorAll("input:checked")].map(input => input.value);
+    const filters = { rarities: selected("filter-rarities"), colors: selected("filter-colors"), proxy: $("filter-proxy").value, name: $("filter-name").value };
+    const filtering = !!(filters.rarities.length || filters.colors.length || filters.proxy !== "all" || filters.name.trim());
+    const history = card => localDatabase?.rarities.get(card.oracle_id) || card.rarities || rarityCache.get(card.oracle_id);
+    const visible = candidates.filter(card => matchesCardFilters(card, filters, isProxy(card, collection, manualProxies, nonProxies), history(card)));
+    $("filter-summary").textContent = cards.length ? `Pokazano ${visible.length} z ${candidates.length} obrazków. Druk obejmuje widoczne karty; lista proxy po prawej dotyczy całego decka.` : "Najpierw ułóż karty z decklisty.";
+    $("filter-rarity-note").hidden = !filters.rarities.length || !candidates.some(card => !card.deckToken && !history(card)?.length);
+    $("filter-empty").hidden = !cards.length || !!visible.length;
+    const emptyMessage = filtering ? "Brak kart pasujących do filtrów. Zmień lub wyczyść filtry." : "Brak kart do pokazania. Wklej listę lub włącz basic landy.";
+    $("filter-empty").textContent = emptyMessage;
     const missing = cards.filter(card => isProxy(card, collection, manualProxies, nonProxies)).sort(compareCards);
     $("missing-panel").hidden = !missing.length;
     document.querySelector(".workspace").classList.toggle("has-missing", !!missing.length);
@@ -468,9 +509,9 @@ function init() {
     const pages = pageGroups.length;
     const total = visible.filter(card => !card.deckToken).reduce((sum, card) => sum + card.quantity, 0);
     const basics = cards.filter(card => cardGroup(card) === 5).reduce((sum, card) => sum + card.quantity, 0);
-    $("stats").textContent = `${visible.length} obrazków · ${total} szt. w talii${$("tokens").checked ? ` · ${tokens.length} rodz. tokenów` : ""} · ${pages} str. A4`;
+    $("stats").textContent = `${visible.length} obrazków · ${total} szt. ${filtering ? "po filtrowaniu" : "w talii"}${$("tokens").checked ? ` · ${visible.filter(card => card.deckToken).length} rodz. tokenów` : ""} · ${pages} str. A4`;
     $("sheets").replaceChildren();
-    $("empty").hidden = !!visible.length;
+    $("empty").hidden = !!cards.length;
     showProblems();
     const loading = [];
     for (let page = 0; page < pages; page++) {
@@ -479,7 +520,7 @@ function init() {
       sheet.style.setProperty("--card-height", perPage === 30 ? "51mm" : "61mm");
       sheet.style.setProperty("--image-height", perPage === 30 ? "37mm" : "47mm");
       const heading = make("div", "sheet-heading");
-      heading.append(make("strong", "", "MTG Builder / Commander"), make("span", "", `${page + 1} / ${pages}`));
+      heading.append(make("strong", "", `MTG Builder / Commander${filtering ? " · wybrane karty" : ""}`), make("span", "", `${page + 1} / ${pages}`));
       const groups = make("div", "sheet-groups");
       for (const segment of pageGroups[page]) {
         const section = make("section", "card-group");
@@ -571,11 +612,11 @@ function init() {
       $("sheets").append(sheet);
     }
     if (busy) return;
-    $("status").textContent = visible.length ? "Wczytywanie obrazków - poczekaj przed drukowaniem…" : "Brak kart do pokazania. Wklej listę lub włącz basic landy.";
+    $("status").textContent = visible.length ? "Wczytywanie obrazków - poczekaj przed drukowaniem…" : emptyMessage;
     const loaded = await Promise.all(loading);
     if (run !== imageRun) return;
     const failed = loaded.filter(ok => !ok).length;
-    $("status").textContent = failed ? `Nie wczytano ${failed} obrazków. Sprawdź połączenie i kliknij ponownie „Ułóż karty”.` : visible.length ? `Obrazki gotowe. Możesz drukować.${!$("basics").checked && basics ? ` Pominięto basic landy: ${basics} szt.` : ""}` : "Brak kart do pokazania. Wklej listę lub włącz basic landy.";
+    $("status").textContent = failed ? `Nie wczytano ${failed} obrazków. Sprawdź połączenie i kliknij ponownie „Ułóż karty”.` : visible.length ? `Obrazki gotowe. Możesz drukować.${!$("basics").checked && basics ? ` Pominięto basic landy: ${basics} szt.` : ""}` : emptyMessage;
     if (failed) {
       problems.push(`Nie wczytano ${failed} obrazków. Nazwy kart pozostają na arkuszu.`);
       showProblems();
@@ -599,6 +640,9 @@ function init() {
     $("missing-list").value = "";
     document.querySelector(".workspace").classList.remove("has-missing");
     $("empty").hidden = true;
+    $("filter-empty").hidden = true;
+    $("filter-summary").textContent = "Wczytywanie decklisty…";
+    $("filter-rarity-note").hidden = true;
     $("stats").textContent = "Pobieranie kart…";
     showProblems();
     await Promise.all([databaseReady, collectionReady]);

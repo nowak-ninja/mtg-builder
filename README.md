@@ -53,6 +53,14 @@ Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiad
 - Lista jest zapisywana wyłącznie lokalnie w przeglądarce. Bez pobranej bazy zapytania o karty trafiają bezpośrednio do publicznego API Scryfall, a wyniki są buforowane w pamięci do odświeżenia strony.
 - W trybie API najstarsze wydania są wyszukiwane paczkami po 10 nazw. Wszystkie zapytania mają odstęp co najmniej 550 ms. Odpowiedź HTTP 429 przerywa pobieranie i wymusza przerwę przed ponowną próbą.
 
+## Filtry arkusza
+
+Nad siatką można wybierać kilka rarity i kolorów, status proxy oraz fragment nazwy karty (bez rozróżniania wielkości liter, także nazwy odwrotu). Zmiany działają od razu, bez przycisku zatwierdzania i bez nowych zapytań o dane kart. W jednej grupie wystarczy dowolna zaznaczona opcja; między grupami warunki muszą być spełnione razem. Brak zaznaczeń oznacza wszystkie opcje. Kolory odpowiadają sekcjom biblioteki, z osobnymi bezkolorowymi i wielokolorowymi.
+
+Filtr rarity bierze pod uwagę wszystkie znane papierowe rarity karty z lokalnej bazy lub pobranej historii, nawet gdy podpis pokazuje tylko pojedyncze wydanie. Bez historii używa rarity widocznego wydania i pokazuje informację o ograniczeniu. Filtry obejmują też włączone tokeny (według rarity ich wydania); tokeny zawsze są „bez proxy”.
+
+Arkusze i licznik stron przeliczają się po filtrowaniu, a druk obejmuje wyłącznie widoczne karty. Lista proxy po prawej nadal obejmuje cały deck. „Wyczyść filtry” przywraca pełny widok. Filtry nie trafiają do localStorage, IndexedDB ani adresu URL; po odświeżeniu strony wszystkie wracają do ustawień domyślnych.
+
 ## Tokeny
 
 Opcja **Dodaj tokeny do decka** jest domyślnie wyłączona. Po włączeniu na końcu arkusza (po basic landach) pojawia się sekcja **Tokeny**, sortowana A-Z, z obrazkami, linkami i podglądem. Sekcja korzysta z tego samego podziału stron i jest drukowana.

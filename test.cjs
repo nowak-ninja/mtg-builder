@@ -1,6 +1,6 @@
 const assert = require('node:assert/strict');
 const CardDatabase = require('./database.js');
-const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds, databaseFreshness } = require('./app.js');
+const { parseDeck, cardGroup, cardColor, compareCards, loadCardBatch, loadRarities, loadTokens, cardCaption, isProxy, paginateCards, previewBounds, databaseFreshness, matchesCardFilters } = require('./app.js');
 
 const parsed = parseDeck(`Commander
 1 Atraxa, Praetors' Voice
@@ -305,3 +305,20 @@ assert.equal(databaseFreshness(freshDatabase, { updated_at: '2026-10-10T08:00:00
 assert.equal(databaseFreshness(freshDatabase, { updated_at: '2026-10-10T10:00:00Z' }).state, 'outdated');
 assert.equal(databaseFreshness({ ...freshDatabase, hasTokenData: false }, { updated_at: freshDatabase.updatedAt }).state, 'outdated');
 console.log('OK: database freshness handles missing/offline/invalid metadata, timestamps, newer snapshots and legacy token data.');
+
+const allFilters = { rarities: [], colors: [], proxy: 'all', name: '' };
+const filterCard = { name: 'Mystic Remora', rarity: 'common', rarities: ['common', 'rare'], colors: ['U'] };
+assert(matchesCardFilters(filterCard, allFilters, false));
+assert(matchesCardFilters(filterCard, { ...allFilters, rarities: ['mythic', 'rare'] }, false));
+assert(!matchesCardFilters(filterCard, { ...allFilters, rarities: ['uncommon'] }, false));
+assert(matchesCardFilters(filterCard, { ...allFilters, rarities: ['rare'], colors: ['G', 'U'], name: ' REMO ', proxy: 'proxy' }, true));
+assert(!matchesCardFilters(filterCard, { ...allFilters, colors: ['G'], name: 'Remora' }, false));
+assert(!matchesCardFilters(filterCard, { ...allFilters, proxy: 'non-proxy' }, true));
+assert(!matchesCardFilters(filterCard, { ...allFilters, proxy: 'proxy' }, false));
+assert(!matchesCardFilters(filterCard, { ...allFilters, name: '%' }, false));
+assert(matchesCardFilters({ name: 'Bala Ged Recovery // Bala Ged Sanctuary', rarity: 'uncommon', card_faces: [{colors:['G']}] }, { ...allFilters, name: 'sanctuary', colors:['G'] }, false));
+assert(matchesCardFilters({ ...filterCard, colors:['G','U'] }, { ...allFilters, colors:['M'] }, false));
+assert(matchesCardFilters({ ...filterCard, colors:[] }, { ...allFilters, colors:['C'] }, false));
+assert(matchesCardFilters({ ...filterCard, rarities: undefined }, { ...allFilters, rarities:['rare'] }, false, ['common','rare']));
+assert(!matchesCardFilters({ ...filterCard, rarities: undefined }, { ...allFilters, rarities:['rare'] }, false));
+console.log('OK: combined filters, all printing rarities, fallback history, color groups, proxy overrides, literal case-insensitive substring and double-faced names.');
