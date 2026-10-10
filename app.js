@@ -2,7 +2,7 @@
 
 const COLOR_ORDER = ["G", "B", "U", "W", "R", "C", "M"];
 const RARITIES = ["common", "uncommon", "rare", "mythic", "special", "bonus"];
-const GROUP_LABELS = ["Common", "Uncommon", "Rare + Mythic", "Non-basic landy · Common + uncommon", "Non-basic landy · Rare + Mythic", "Basic landy", "Tokeny"];
+const GROUP_LABELS = ["Common", "Uncommon", "Rare + Mythic", "Non-basic landy · Common + Uncommon", "Non-basic landy · Rare + Mythic", "Basic landy", "Tokeny"];
 const alphabet = new Intl.Collator("en", { sensitivity: "base" });
 const cardDatabase = typeof module !== "undefined" ? require("./database.js") : CardDatabase;
 

@@ -126,7 +126,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .card[data-color="G"] { --card-border: #4f875d; --card-tint: #eff7ef; --card-dark: #263e2d; }
 .card[data-color="B"] { --card-border: #746879; --card-tint: #f1edf3; --card-dark: #332d3b; }
 .card[data-color="U"] { --card-border: #4f87b1; --card-tint: #edf5fc; --card-dark: #23384a; }
-.card[data-color="W"] { --card-border: #bba560; --card-tint: #fffae8; --card-dark: #3c3828; }
+.card[data-color="W"] { --card-border: #b5ad96; --card-tint: #f7f4eb; --card-dark: #38362f; }
 .card[data-color="R"] { --card-border: #b96950; --card-tint: #fff0e9; --card-dark: #462d28; }
 .card[data-color="C"] { --card-border: #8b979b; --card-tint: #f1f4f5; --card-dark: #30393d; }
 .card[data-color="M"] { --card-border: #b18b29; --card-tint: #fbf5df; --card-dark: #403820; }
