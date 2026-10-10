@@ -92,15 +92,22 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .sheet-heading, .sheet-footer { display: flex; justify-content: space-between; gap: 12px; font-size: 10px; color: #677362; }
 .sheet-heading { padding-bottom: 13px; border-bottom: 1px solid #e3e6df; margin-bottom: 14px; }.sheet-heading strong { color: #334b3a; }.sheet-footer { margin-top: 15px; font-size: 8px; }
 .card-grid { display: grid; grid-template-columns: repeat(var(--columns, 6), minmax(0, 1fr)); gap: 12px 8px; align-items: start; }
-.card-group-heading { display: flex; justify-content: space-between; gap: 8px; margin: 16px 0 8px; padding: 6px 8px; border-bottom: 3px solid #45633f; background: #e6ecdf; font-size: 12px; font-weight: 750; color: #263e2c; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
-.card-group:first-child .card-group-heading { margin-top: 0; }
+.sheet-groups { display: grid; gap: 20px; }
+.card-group-heading { display: flex; justify-content: space-between; gap: 8px; margin: 0 0 8px; padding: 6px 8px; border-bottom: 3px solid #45633f; background: #e6ecdf; font-size: 12px; font-weight: 750; color: #263e2c; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
 .card-group-heading > span { font-size: 9px; font-weight: normal; }
-.card { margin: 0; min-width: 0; position: relative; padding: 22px 4px 4px; border: 1px solid #d5ddd1; border-radius: 6px; break-inside: avoid; page-break-inside: avoid; }
+.card { margin: 0; min-width: 0; position: relative; padding: 22px 4px 4px; border: 1px solid var(--card-border, #8b979b); background: var(--card-tint, #f1f4f5); border-radius: 6px; print-color-adjust: exact; -webkit-print-color-adjust: exact; break-inside: avoid; page-break-inside: avoid; }
+.card[data-color="G"] { --card-border: #4f875d; --card-tint: #eff7ef; --card-dark: #263e2d; }
+.card[data-color="B"] { --card-border: #746879; --card-tint: #f1edf3; --card-dark: #332d3b; }
+.card[data-color="U"] { --card-border: #4f87b1; --card-tint: #edf5fc; --card-dark: #23384a; }
+.card[data-color="W"] { --card-border: #bba560; --card-tint: #fffae8; --card-dark: #3c3828; }
+.card[data-color="R"] { --card-border: #b96950; --card-tint: #fff0e9; --card-dark: #462d28; }
+.card[data-color="C"] { --card-border: #8b979b; --card-tint: #f1f4f5; --card-dark: #30393d; }
+.card[data-color="M"] { --card-border: #b18b29; --card-tint: #fbf5df; --card-dark: #403820; }
 .proxy-toggle { position: absolute; top: 3px; right: 4px; display: flex; align-items: center; gap: 3px; font-size: 9px; color: #52634e; cursor: pointer; }
 .proxy-toggle input { width: 12px; height: 12px; margin: 0; }
 .card-link { position: relative; display: block; }
 .proxy .card-link > img { filter: grayscale(1); }
-.card.proxy { border-color: #956d37; border-style: dashed; outline: 1px dashed #956d37; background: #fff8e9; }
+.card.proxy { border-style: dashed; outline: 1px dashed var(--card-border); }
 .card-preview { position: fixed; z-index: 100; pointer-events: none; object-fit: contain; box-shadow: 0 8px 32px #0006; }
 /* Proportional clipping follows the scan corners at thumbnail and preview sizes. */
 .card img, .card-preview { border-radius: 8% / 5.75%; }
@@ -126,7 +133,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   [data-theme="dark"] textarea::placeholder { color: #9aa99c; }
   [data-theme="dark"] :is(.hint, .edition-note, ol, .eyebrow, h2 > span, .intro > p:last-child, #stats, .footer, .empty > p:not(.eyebrow), .empty-label, .sheet-heading, .sheet-footer, .card-rarities, .proxy-toggle) { color: #aebdae; }
   [data-theme="dark"] :is(.intro .eyebrow, .status, .text-button) { color: #a4d7b3; }
-  [data-theme="dark"] :is(.topbar, .theme-toggle, .footer, .settings, .local-database, .edition-note, .sheet-heading, kbd, .card) { border-color: #425247; }
+  [data-theme="dark"] :is(.topbar, .theme-toggle, .footer, .settings, .local-database, .edition-note, .sheet-heading, kbd) { border-color: #425247; }
   [data-theme="dark"] .sheet-heading strong { color: #d9e7d9; }
   [data-theme="dark"] .card-group-heading { background: #304735; color: #e3efdf; border-color: #87af7f; }
   [data-theme="dark"] .empty { background: #1b251e; border-color: #526857; }
@@ -140,7 +147,7 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   [data-theme="dark"] .database-freshness { background: #29372d; color: #bfd0bf; border-color: #829d87; }
   [data-theme="dark"] .database-freshness[data-state="current"] { color: #b4dfbd; border-color: #85bc94; }
   [data-theme="dark"] .database-freshness[data-state="outdated"] { background: #3d3020; color: #edce98; border-color: #c79b52; }
-  [data-theme="dark"] .card.proxy { border-color: #d8b780; outline-color: #d8b780; background: #332d22; }
+  [data-theme="dark"] .card { background: var(--card-dark, #30393d); }
   [data-theme="dark"] .issues { background: #3d3020; color: #f1d8ad; border-color: #947146; }
 }
 @page { size: A4 portrait; margin: 8mm; }
@@ -151,16 +158,17 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
   .sheet { width: 194mm; max-width: none; padding: 0; margin: 0; border: 0; box-shadow: none; break-after: page; page-break-after: always; break-inside: avoid; page-break-inside: avoid; }
   .sheet:last-child { break-after: auto; page-break-after: auto; }
   .sheet-heading { font-size: 8pt; height: 8mm; padding: 0 0 2mm; margin: 0; align-items: center; border: 0; }
-  .card-group-heading, .card-group:first-child .card-group-heading { height: 4mm; margin: 0; padding: .15mm 1mm; align-items: center; border-bottom: .6mm solid #45633f; font-size: 7.5pt; line-height: 1; break-after: avoid; }
+  .sheet-groups { gap: 2mm; }
+  .card-group-heading { height: 4mm; margin: 0 0 1mm; padding: .15mm 1mm; align-items: center; border-bottom: .6mm solid #45633f; font-size: 7.5pt; line-height: 1; break-after: avoid; }
   .card-group-heading > span { font-size: 6pt; }
   .card-grid { grid-template-columns: repeat(var(--columns), minmax(0, 1fr)); gap: 1.5mm 2mm; }
-  .card { height: var(--card-height); padding: .5mm; border: .2mm solid #aeb9a8; border-radius: 1mm; }
+  .card { height: var(--card-height); padding: .5mm; border: .2mm solid var(--card-border, #8b979b); border-radius: 1mm; }
   .card-markers { height: 7mm; min-height: 0; padding: 0 0 .5mm; gap: .3mm; }
   .card-markers > .mana-symbol { font-size: 8pt; }
   .card-initial { font-size: 9pt; }
   .card-rarities { max-height: 4.6mm; font-size: 5.2pt; line-height: 1.05; color: #222; }
   .card img { width: auto; height: var(--image-height); }
-  .card.proxy { border-color: #555; outline: .25mm dashed #555; background: transparent; }
+  .card.proxy { outline: .25mm dashed var(--card-border); }
   .card figcaption { height: 5.6mm; min-height: 0; }
   .card-name { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 6.2pt; line-height: 1.05; max-height: 4.6mm; }
   .quantity { top: 1mm; right: 1mm; padding: .3mm 1mm; font-size: 7pt; color: black; }

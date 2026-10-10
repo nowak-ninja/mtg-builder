@@ -2,7 +2,7 @@
 
 const COLOR_ORDER = ["G", "B", "U", "W", "R", "C", "M"];
 const RARITIES = ["common", "uncommon", "rare", "mythic", "special", "bonus"];
-const GROUP_LABELS = ["Common", "Uncommon", "Rare + mythic", "Non-basic landy · Common + uncommon", "Non-basic landy · Rare + mythic", "Basic landy", "Tokeny"];
+const GROUP_LABELS = ["Common", "Uncommon", "Rare + Mythic", "Non-basic landy · Common + uncommon", "Non-basic landy · Rare + Mythic", "Basic landy", "Tokeny"];
 const alphabet = new Intl.Collator("en", { sensitivity: "base" });
 const cardDatabase = typeof module !== "undefined" ? require("./database.js") : CardDatabase;
 
@@ -172,7 +172,7 @@ function paginateCards(cards, perPage) {
     while (end < cards.length && cardGroup(cards[end]) === group) end++;
     let segment;
     for (let offset = start; offset < end; offset += columns) {
-      const extra = rowHeight + (segment ? 1.5 : 4);
+      const extra = rowHeight + (segment ? 1.5 : 5 + (page?.length ? 2 : 0));
       if (!page || used + extra > 268 || rows === perPage / columns) {
         page = [];
         pages.push(page);
@@ -181,8 +181,9 @@ function paginateCards(cards, perPage) {
       }
       if (!segment) {
         segment = { group, continued: offset > start, cards: [] };
+        // 4 mm heading + 1 mm below it, plus 2 mm between sections.
+        used += 5 + (page.length ? 2 : 0);
         page.push(segment);
-        used += 4;
       } else used += 1.5;
       segment.cards.push(...cards.slice(offset, Math.min(offset + columns, end)));
       used += rowHeight;
@@ -487,6 +488,7 @@ function init() {
         const grid = make("div", "card-grid");
         segment.cards.forEach(card => {
           const figure = make("figure", "card");
+          figure.dataset.color = cardColor(card);
           const image = make("img", "");
           image.alt = card.name;
           image.loading = "eager";

@@ -66,7 +66,7 @@ for (const density of [30, 20]) {
       for (const group of page) {
         assert(group.cards.every(c => cardGroup(c) === group.group));
         const rows = Math.ceil(group.cards.length / columns);
-        height += 4 + rows * rowHeight + (rows - 1) * 1.5;
+        height += (height ? 2 : 0) + 5 + rows * rowHeight + (rows - 1) * 1.5;
       }
       assert(height <= 268);
     }
@@ -76,6 +76,11 @@ for (const density of [30, 20]) {
   assert.equal(pages[0][0].continued, false);
   assert.equal(pages[1][0].continued, true);
 }
+const nearPageLimit = [
+  ...Array.from({ length: 24 }, (_, i) => card(`Common ${i}`, 'common', ['G'])),
+  ...Array.from({ length: 6 }, (_, i) => card(`Uncommon ${i}`, 'uncommon', ['G']))
+];
+assert.equal(paginateCards(nearPageLimit, 30).length, 2, 'Section spacing must move a row to the next page instead of overflowing');
 console.log('OK: grouped pagination, continuation headings, order, page capacity and print height budget.');
 
 
