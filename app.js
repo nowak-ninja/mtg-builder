@@ -312,6 +312,7 @@ function init() {
     }
   }
   // Start fresh even if the browser restores native form controls on reload.
+  $("card-filters").open = false;
   $("filter-name").value = "";
   $("card-filters").querySelectorAll('input[type="checkbox"]').forEach(input => { input.checked = false; });
   $("card-filters").addEventListener("input", () => { if (!busy) render(); });

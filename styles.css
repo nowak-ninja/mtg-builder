@@ -84,7 +84,9 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 #cancel-db { margin-top: 8px; }
 .preview { min-width: 0; }
 .card-filters { margin-bottom: 16px; padding: 16px; border: 1px solid #dce1d7; border-radius: 10px; background: #fffefa; }
-.filter-heading { display: flex; justify-content: space-between; align-items: center; gap: 12px; margin-bottom: 12px; }
+.card-filters > summary { font-size: 14px; font-weight: 650; }
+.card-filters[open] > summary { margin-bottom: 12px; }
+.filter-heading { display: flex; justify-content: flex-end; align-items: center; gap: 12px; margin-bottom: 12px; }
 .filter-fields { display: flex; flex-wrap: wrap; gap: 12px; }
 .filter-fields > label { flex: 1 1 160px; min-width: 0; font-size: 11px; }
 .filter-fields input[type="search"] { display: block; width: 100%; min-width: 0; margin-top: 5px; border: 1px solid #d8dfd3; border-radius: 6px; padding: 9px; background: #f7f8f2; color: #263a30; font: inherit; }

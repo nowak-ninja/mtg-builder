@@ -59,7 +59,9 @@ Nazwy rarity w podpisach, nagłówkach, filtrach i opisie sortowania mają włas
 
 ## Filtry arkusza
 
-Nad siatką można wybierać kilka rarity i kolorów, status proxy przez checkboxy **Proxy** i **Bez proxy** po prawej oraz fragment nazwy karty (bez rozróżniania wielkości liter, także nazwy odwrotu). Zmiany działają od razu, bez przycisku zatwierdzania i bez nowych zapytań o dane kart. W jednej grupie wystarczy dowolna zaznaczona opcja; między grupami warunki muszą być spełnione razem. Brak zaznaczeń oznacza wszystkie opcje; zaznaczenie obu checkboxów proxy również pokazuje oba warianty. Kolory odpowiadają sekcjom biblioteki, z osobnymi bezkolorowymi i wielokolorowymi.
+Panel **Filtry kart** nad siatką jest domyślnie zwinięty. Kliknięcie nagłówka rozwija lub zwija panel; jego stan nie jest zapisywany, a po odświeżeniu znów jest zwinięty. Zwijanie nie wyłącza aktywnych filtrów.
+
+W panelu można wybierać kilka rarity i kolorów, status proxy przez checkboxy **Proxy** i **Bez proxy** po prawej oraz fragment nazwy karty (bez rozróżniania wielkości liter, także nazwy odwrotu). Zmiany działają od razu, bez przycisku zatwierdzania i bez nowych zapytań o dane kart. W jednej grupie wystarczy dowolna zaznaczona opcja; między grupami warunki muszą być spełnione razem. Brak zaznaczeń oznacza wszystkie opcje; zaznaczenie obu checkboxów proxy również pokazuje oba warianty. Kolory odpowiadają sekcjom biblioteki, z osobnymi bezkolorowymi i wielokolorowymi.
 
 Filtr rarity bierze pod uwagę wszystkie znane papierowe rarity karty z lokalnej bazy lub pobranej historii, nawet gdy podpis pokazuje tylko pojedyncze wydanie. Bez historii używa rarity widocznego wydania i pokazuje informację o ograniczeniu. Filtry obejmują też włączone tokeny (według rarity ich wydania); tokeny zawsze są „bez proxy”.
 
