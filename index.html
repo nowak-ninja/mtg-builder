@@ -9,6 +9,7 @@
     // Apply the saved theme before the first paint, also when opened via file://.
     let savedTheme;
     try { savedTheme = localStorage.getItem("mtg-builder-theme"); } catch { /* Storage may be disabled. */ }
+    document.documentElement.dataset.themeMode = ["light", "dark"].includes(savedTheme) ? savedTheme : "system";
     document.documentElement.dataset.theme = savedTheme === "dark" || savedTheme === "light"
       ? savedTheme : (matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
   </script>
@@ -22,7 +23,11 @@
   <header class="topbar screen-only">
     <a class="brand" href="./"><img class="brand-mark" src="assets/logo.svg" alt="" width="38" height="44"> MTG <strong>Builder</strong></a>
     <span class="eyebrow">COMMANDER / POMOCNIK KOLEKCJONERA</span>
-    <label class="checkbox theme-toggle"><input type="checkbox" id="theme-toggle"> Ciemny motyw</label>
+    <button class="theme-toggle" id="theme-toggle" type="button" aria-label="Zmień motyw">
+      <svg class="theme-icon theme-light" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></svg>
+      <svg class="theme-icon theme-dark" viewBox="0 0 24 24" aria-hidden="true"><path d="M20.5 14A9 9 0 0 1 10 3.5 9 9 0 1 0 20.5 14Z"/></svg>
+      <svg class="theme-icon theme-system" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 1 0 18Z" fill="currentColor" stroke="none"/></svg>
+    </button>
   </header>
   <main>
     <section class="intro screen-only">
@@ -33,7 +38,7 @@
     <div class="workspace">
       <aside class="editor screen-only">
         <form id="deck-form">
-          <div class="section-heading"><h2><span>01</span> Decklista</h2><button class="text-button" id="example" type="button">Wstaw przykład ↗</button></div>
+          <div class="section-heading"><h2><span>01</span> Decklista</h2><div class="deck-actions"><button class="text-button" id="example" type="button">Wstaw przykład ↗</button><button class="text-button" id="clear-deck" type="button">Wyczyść</button></div></div>
           <label class="sr-only" for="decklist">Lista kart, jedna karta w wierszu</label>
           <textarea id="decklist" spellcheck="false" required placeholder="1 Atraxa, Praetors' Voice&#10;1 Sol Ring&#10;1 Cultivate&#10;1 Swords to Plowshares&#10;1 Command Tower&#10;…" aria-describedby="format-help"></textarea>
           <p class="hint" id="format-help">Jedna karta w wierszu, nazwa lub liczba i nazwa: <code>1 Sol Ring</code></p>

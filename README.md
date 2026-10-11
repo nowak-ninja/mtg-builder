@@ -8,7 +8,9 @@ https://nowak-ninja.github.io/mtg-builder
 
 Otwórz `index.html` w przeglądarce. Do pobrania danych i obrazków potrzebne jest połączenie z internetem. Alternatywnie uruchom dowolny serwer plików statycznych, np. `python3 -m http.server 8000`, i wejdź na `http://localhost:8000`.
 
-Przełącznik **Ciemny motyw** w nagłówku zapisuje wybór w `localStorage` dla tej przeglądarki i adresu strony. Bez zapisanego wyboru strona przy otwieraniu używa motywu systemowego. Wydruk zawsze zachowuje jasne tło i kolory symboli many. Przy zablokowanej pamięci przełącznik nadal działa do zamknięcia strony.
+Przycisk z ikoną w nagłówku przełącza kolejno motyw systemowy (półkole), jasny (słońce) i ciemny (księżyc). Wybór zapisuje się w `localStorage`; tryb systemowy na bieżąco reaguje na ustawienia systemu. Bez zapisanego wyboru używany jest tryb systemowy. Wydruk zawsze zachowuje jasne tło i kolory symboli many. Przy zablokowanej pamięci przycisk nadal działa do zamknięcia strony.
+
+Akcja **Wyczyść** obok **Wstaw przykład** usuwa decklistę również z pamięci przeglądarki, czyści arkusz, listę proxy, filtry i komunikaty dotyczące decka. Zachowuje bazę kart, kolekcję, ustawienia oraz zapamiętane ręczne oznaczenia proxy. Podczas pobierania jest czasowo nieaktywna.
 
 ## GitHub Pages
 
@@ -44,7 +46,7 @@ Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiad
 
 - Jedna karta w wierszu, nazwa lub liczba i nazwa: `1 Sol Ring`. Działa też sama nazwa `Sol Ring` oraz zapis `1x Sol Ring`. Angielskie nazwy Scryfall; dokładna nazwa, bez zgadywania literówek. Dopiski edycji i numeru w starszych eksportach są ignorowane.
 - Obsługiwane są nagłówki Commander/Deck i kategorie typów. Sekcje Sideboard/Maybeboard/Considering oraz linie `SB:` są pomijane. Kolejny nagłówek Deck/Commander wraca do głównej listy.
-- Powtórzenia tej samej karty są łączone, także przy różnych dopiskach edycji w starszym eksporcie; liczba sztuk jest widoczna na obrazku.
+- Powtórzenia tej samej karty są łączone, także przy różnych dopiskach edycji w starszym eksporcie; liczba sztuk jest widoczna w lewym górnym rogu ramki, poza grafiką karty. Etykieta ma jasne tło także w ciemnym motywie.
 - Common → uncommon → rare + mythic. W każdej grupie: G, B, U, W, R, bezkolorowe, wielokolorowe, potem A-Z.
 - Następnie non-basic landy Common + Uncommon A-Z, potem rare + mythic A-Z, bez podziału na kolory. Basic landy są domyślnie pokazywane na końcu; można je wyłączyć checkboxem.
 - Używany jest kolor karty, nie jej commander color identity. Dla kart dwustronnych wyświetlany i klasyfikowany jest przód. Spell z landem na odwrocie pozostaje w grupie spelli.

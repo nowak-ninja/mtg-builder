@@ -232,12 +232,25 @@ if (typeof document !== "undefined") init();
 
 function init() {
   const $ = id => document.getElementById(id);
-  $("theme-toggle").checked = document.documentElement.dataset.theme === "dark";
-  $("theme-toggle").addEventListener("change", () => {
-    const theme = $("theme-toggle").checked ? "dark" : "light";
-    document.documentElement.dataset.theme = theme;
-    try { localStorage.setItem("mtg-builder-theme", theme); } catch { /* Theme still works for this visit. */ }
+  const systemTheme = matchMedia("(prefers-color-scheme: dark)");
+  const themeModes = ["system", "light", "dark"];
+  const themeNames = { system: "systemowy", light: "jasny", dark: "ciemny" };
+  function updateTheme() {
+    const mode = document.documentElement.dataset.themeMode;
+    document.documentElement.dataset.theme = mode === "system" ? (systemTheme.matches ? "dark" : "light") : mode;
+    const next = themeModes[(themeModes.indexOf(mode) + 1) % themeModes.length];
+    const label = `Motyw: ${themeNames[mode]}. Przełącz na ${themeNames[next]}.`;
+    $("theme-toggle").setAttribute("aria-label", label);
+    $("theme-toggle").title = label;
+  }
+  $("theme-toggle").addEventListener("click", () => {
+    const mode = themeModes[(themeModes.indexOf(document.documentElement.dataset.themeMode) + 1) % themeModes.length];
+    document.documentElement.dataset.themeMode = mode;
+    try { localStorage.setItem("mtg-builder-theme", mode); } catch { /* Theme still works for this visit. */ }
+    updateTheme();
   });
+  systemTheme.addEventListener("change", updateTheme);
+  updateTheme();
   const cache = new Map();
   const rarityCache = new Map();
   const tokenCache = new Map();
@@ -313,14 +326,13 @@ function init() {
   }
   // Start fresh even if the browser restores native form controls on reload.
   $("card-filters").open = false;
-  $("filter-name").value = "";
-  $("card-filters").querySelectorAll('input[type="checkbox"]').forEach(input => { input.checked = false; });
+  resetFilters();
   $("card-filters").addEventListener("input", () => { if (!busy) render(); });
-  $("reset-filters").addEventListener("click", () => {
+  function resetFilters() {
     $("card-filters").querySelectorAll('input[type="checkbox"]').forEach(input => { input.checked = false; });
     $("filter-name").value = "";
-    render();
-  });
+  }
+  $("reset-filters").addEventListener("click", () => { resetFilters(); render(); });
   const preview = make("img", "card-preview screen-only");
   preview.alt = "";
   preview.setAttribute("aria-hidden", "true");
@@ -381,7 +393,7 @@ function init() {
 
   function setBusy(value) {
     busy = value;
-    for (const id of ["build", "example", "decklist", "density", "basics", "rarities", "tokens", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
+    for (const id of ["build", "example", "clear-deck", "decklist", "density", "basics", "rarities", "tokens", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
     $("card-filters").querySelectorAll("input, select, button").forEach(input => { input.disabled = value; });
     document.querySelectorAll(".proxy-toggle input").forEach(input => { input.disabled = value; });
   }
@@ -466,6 +478,20 @@ function init() {
   $("example").addEventListener("click", () => {
     $("decklist").value = "Commander\n1 Atraxa, Praetors' Voice\n\nDeck\n1 Cultivate\n1 Llanowar Elves\n1 Victimize\n1 Counterspell\n1 Swords to Plowshares\n1 Lightning Bolt\n1 Sol Ring\n1 Arcane Signet\n1 Eternal Witness\n1 Beast Within\n1 Rhystic Study\n1 Smothering Tithe\n1 Birds of Paradise\n1 Baleful Strix\n1 Command Tower\n1 Evolving Wilds\n1 Exotic Orchard\n1 Breeding Pool\n1 Watery Grave\n5 Forest";
     $("decklist").dispatchEvent(new Event("input"));
+    $("decklist").focus();
+  });
+  $("clear-deck").addEventListener("click", async () => {
+    if (busy) return;
+    $("decklist").value = "";
+    try { localStorage.removeItem("mtg-builder-deck"); } catch { /* Clearing still works for this visit. */ }
+    cards = [];
+    tokens = [];
+    problems = [];
+    resetFilters();
+    $("token-status").textContent = "";
+    await render();
+    $("stats").textContent = "A4 · gotowy do uporządkowania";
+    $("status").textContent = "";
     $("decklist").focus();
   });
   ["density", "basics"].forEach(id => $(id).addEventListener("change", render));
@@ -572,7 +598,7 @@ function init() {
           link.addEventListener("blur", hidePreview);
           link.append(image);
           figure.append(markers, link, caption);
-          if (card.quantity > 1) link.append(make("span", "quantity", `×${card.quantity}`));
+          if (card.quantity > 1) markers.prepend(make("span", "quantity", `×${card.quantity}`));
           const automaticProxy = Boolean(collection && !collection.has(card));
           if (!card.deckToken) {
             const proxyToggle = make("label", "proxy-toggle screen-only");
