@@ -22,6 +22,15 @@ assert.equal(parsed.errors.length, 1);
 assert.deepEqual(parsed.entries[1], { name: 'Sol Ring', quantity: 3 });
 assert.deepEqual(parseDeck('1 Sol Ring\n2 Sol Ring (CMM) 410\n3 Sol Ring (LEA) 270').entries, [{ name: 'Sol Ring', quantity: 6 }]);
 assert.equal(parseDeck('1xSol Ring\n2x Sol Ring').entries[0].quantity, 3);
+const faceSeparators = ['/', ' / ', '/ ', ' /', '//', ' // ', '// ', ' //', '\t/\t', '  //  '];
+const roomName = "Dollmaker's Shop // Porcelain Gallery";
+for (const separator of faceSeparators) {
+  const name = ["Dollmaker's Shop", 'Porcelain Gallery'].join(separator);
+  assert.deepEqual(parseDeck(`2x ${name} (DSK) 4`).entries, [{ name: roomName, quantity: 2 }]);
+}
+assert.deepEqual(parseDeck(faceSeparators.map(separator => `1 Dollmaker's Shop${separator}Porcelain Gallery`).join('\n')).entries, [{ name: roomName, quantity: faceSeparators.length }]);
+assert.deepEqual(parseDeck('// comment\n# comment\n1 Fire/Ice').entries, [{ name: 'Fire // Ice', quantity: 1 }]);
+
 
 const card = (name, rarity, colors, type_line = 'Creature') => ({ name, rarity, colors, type_line, set: 'tst', collector_number: '1' });
 const cards = [];
@@ -177,6 +186,28 @@ console.log('OK: grouped pagination, continuation headings, order, page capacity
   console.log('OK: oldest printing locally/online, ignored edition overrides, Art Series and tokens including legacy snapshots, missing names and API failures.');
 
   assert.equal(local.lookup({ name: 'Insectile Aberration' }).id, 'dfc');
+  const splitCards = [
+    printing({ id: 'room', name: roomName, card_faces: [{ name: "Dollmaker's Shop" }, { name: 'Porcelain Gallery' }] }),
+    printing({ id: 'modal', name: 'Bala Ged Recovery // Bala Ged Sanctuary', card_faces: [{ name: 'Bala Ged Recovery' }, { name: 'Bala Ged Sanctuary' }] }),
+    printing({ id: 'split', name: 'Fire // Ice', card_faces: [{ name: 'Fire' }, { name: 'Ice' }] })
+  ];
+  const splitDatabase = CardDatabase.index({ cards: splitCards.map(CardDatabase.compact) });
+  for (const splitCard of splitCards) {
+    for (const separator of faceSeparators) {
+      const entries = parseDeck(`1 ${splitCard.name.replace(' // ', separator)}`).entries;
+      assert.equal(splitDatabase.lookup(entries[0]).id, splitCard.id);
+      const online = await loadCardBatch(entries, async url => {
+        const query = new URL(url).searchParams.get('q');
+        assert(query.includes(`!${JSON.stringify(splitCard.card_faces[0].name)}`));
+        assert(!query.includes(splitCard.card_faces[1].name));
+        return { data: [splitCard], has_more: false };
+      });
+      assert.equal(online[0].id, splitCard.id);
+    }
+  }
+  assert.equal(splitDatabase.lookup(parseDeck("1 Dollmaker's Shop/Wrong Half").entries[0]), undefined);
+  console.log('OK: single/double slash variants, whitespace and duplicate quantities; Room/modal/split cards resolve locally and through API without ignoring incorrect second halves.');
+
   assert.deepEqual(local.rarities.get('remora'), ['common', 'rare']);
   assert.equal(local.lookup({ name: 'Delver of Secrets' }).card_faces[0].image_uris.normal, 'https://cards.scryfall.io/front.jpg');
   assert.throws(() => CardDatabase.compact({ object: 'error' }), /Niepoprawny rekord/);

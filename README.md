@@ -47,6 +47,7 @@ Jeśli posiadana karta nadal jest proxy, sprawdź podpowiedź po najechaniu na j
 ## Lista i sortowanie
 
 - Jedna karta w wierszu, nazwa lub liczba i nazwa: `1 Sol Ring`. Działa też sama nazwa `Sol Ring` oraz zapis `1x Sol Ring`. Angielskie nazwy Scryfall; dokładna nazwa, bez zgadywania literówek. Dopiski edycji i numeru w starszych eksportach są ignorowane.
+- Nazwy kart dzielonych i dwustronnych mogą używać `/` lub `//`, ze spacjami albo bez, np. `Dollmaker's Shop/Porcelain Gallery`. Zapisy są automatycznie ujednolicane przed wyszukiwaniem w bazie lokalnej lub API. Różne zapisy tej samej karty są łączone i sumują liczbę sztuk. Nie trzeba ponownie pobierać bazy.
 - Obsługiwane są nagłówki Commander/Deck i kategorie typów. Sekcje Sideboard/Maybeboard/Considering oraz linie `SB:` są pomijane. Kolejny nagłówek Deck/Commander wraca do głównej listy.
 - Powtórzenia tej samej karty są łączone, także przy różnych dopiskach edycji w starszym eksporcie; liczba sztuk jest widoczna w lewym górnym rogu ramki, poza grafiką karty. Etykieta ma jasne tło także w ciemnym motywie.
 - Common → uncommon → rare + mythic. W każdej grupie: G, B, U, W, R, bezkolorowe, wielokolorowe, potem A-Z.

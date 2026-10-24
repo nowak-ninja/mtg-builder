@@ -23,7 +23,7 @@ function parseDeck(text) {
     const quantity = count ? Number(count[1]) : 1;
     if (count) line = count[2];
     const edition = line.match(/^(.+?)\s+\(([a-z0-9]+)\)(?:\s+([\w★†-]+))?$/i);
-    const name = (edition ? edition[1] : line).trim();
+    const name = (edition ? edition[1] : line).trim().replace(/\s*\/{1,2}\s*/g, " // ");
     if (!name || !Number.isSafeInteger(quantity) || quantity < 1) { errors.push(`Wiersz ${index + 1}: niepoprawna liczba lub nazwa karty.`); return; }
     const entry = { name, quantity };
     const key = name.toLowerCase();
