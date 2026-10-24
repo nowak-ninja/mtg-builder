@@ -168,16 +168,16 @@ async function loadTokens(cards, request, localDatabase, cache) {
   })).sort(compareCards);
 }
 
-function paginateCards(cards, perPage) {
+function paginateCards(cards, perPage, groupFor = cardGroup) {
   const columns = perPage === 30 ? 6 : 5;
   // Millimetres, matching print CSS: 281 mm page minus 8 mm heading and 5 mm footer.
   const rowHeight = perPage === 30 ? 51 : 61;
   const pages = [];
   let page, used = 0, rows = 0;
   for (let start = 0; start < cards.length;) {
-    const group = cardGroup(cards[start]);
+    const group = groupFor(cards[start]);
     let end = start + 1;
-    while (end < cards.length && cardGroup(cards[end]) === group) end++;
+    while (end < cards.length && groupFor(cards[end]) === group) end++;
     let segment;
     for (let offset = start; offset < end; offset += columns) {
       const extra = rowHeight + (segment ? 1.5 : 5 + (page?.length ? 2 : 0));
@@ -393,7 +393,7 @@ function init() {
 
   function setBusy(value) {
     busy = value;
-    for (const id of ["build", "example", "clear-deck", "decklist", "density", "basics", "rarities", "tokens", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
+    for (const id of ["build", "example", "clear-deck", "decklist", "density", "basics", "rarities", "tokens", "proxy-last", "download-db", "upload-collection", "collection-file"]) $(id).disabled = value;
     $("card-filters").querySelectorAll("input, select, button").forEach(input => { input.disabled = value; });
     document.querySelectorAll(".proxy-toggle input").forEach(input => { input.disabled = value; });
   }
@@ -498,7 +498,7 @@ function init() {
     $("status").textContent = "";
     $("decklist").focus();
   });
-  ["density", "basics"].forEach(id => $(id).addEventListener("change", render));
+  ["density", "basics", "proxy-last"].forEach(id => $(id).addEventListener("change", render));
   $("rarities").addEventListener("change", () => {
     if ($("rarities").checked && cards.length) $("deck-form").requestSubmit();
     else render();
@@ -546,7 +546,9 @@ function init() {
     clearTimeout(copyStatusTimer);
     $("copy-status").replaceChildren(...copyHint);
     const perPage = Number($("density").value);
-    const pageGroups = paginateCards(visible, perPage);
+    const groupFor = card => cardGroup(card) + ($("proxy-last").checked && isProxy(card, collection, manualProxies, nonProxies) ? GROUP_LABELS.length : 0);
+    if ($("proxy-last").checked) visible.sort((a, b) => groupFor(a) - groupFor(b) || compareCards(a, b));
+    const pageGroups = paginateCards(visible, perPage, groupFor);
     const pages = pageGroups.length;
     const total = visible.filter(card => !card.deckToken).reduce((sum, card) => sum + card.quantity, 0);
     const basics = cards.filter(card => cardGroup(card) === 5).reduce((sum, card) => sum + card.quantity, 0);
@@ -566,7 +568,7 @@ function init() {
       for (const segment of pageGroups[page]) {
         const section = make("section", "card-group");
         const groupHeading = make("h3", "card-group-heading");
-        groupHeading.append(makeRarityText("span", "group-label", GROUP_LABELS[segment.group]));
+        groupHeading.append(makeRarityText("span", "group-label", `${segment.group >= GROUP_LABELS.length ? "Proxy · " : ""}${GROUP_LABELS[segment.group % GROUP_LABELS.length]}`));
         if (segment.continued) groupHeading.append(make("span", "", "ciąg dalszy"));
         const grid = make("div", "card-grid");
         segment.cards.forEach(card => {

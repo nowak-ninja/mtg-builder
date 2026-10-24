@@ -44,6 +44,8 @@ Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiad
 
 Jeśli posiadana karta nadal jest proxy, sprawdź podpowiedź po najechaniu na jej ramkę: „Ręcznie oznaczone proxy” oznacza zapamiętane ręczne zaznaczenie. Odznacz **Proxy** przy tej karcie. Przy komunikacie „Brak w kolekcji - proxy” wczytaj aktualny CSV. Przecinki w nazwach ujętych w podwójne cudzysłowy (np. `"Yavimaya, Cradle of Growth"`) są częścią nazwy i nie rozdzielają jej podczas importu.
 
+Opcja **Pokaż karty proxy na końcu** w sekcji **02 Arkusz** przenosi proxy za pozostałe karty (także za tokeny). Zachowuje ich kategorie, kolejność kolorów i sortowanie A-Z. Nagłówki tych grup mają przedrostek **Proxy**, np. **Proxy · Common**. Działa od razu na ekranie i wydruku, uwzględnia filtry oraz ręczne zaznaczenia i odznaczenia. Domyślnie jest wyłączona.
+
 ## Lista i sortowanie
 
 - Jedna karta w wierszu, nazwa lub liczba i nazwa: `1 Sol Ring`. Działa też sama nazwa `Sol Ring` oraz zapis `1x Sol Ring`. Angielskie nazwy Scryfall; dokładna nazwa, bez zgadywania literówek. Dopiski edycji i numeru w starszych eksportach są ignorowane.

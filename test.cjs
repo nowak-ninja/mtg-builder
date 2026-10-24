@@ -92,6 +92,37 @@ const nearPageLimit = [
 assert.equal(paginateCards(nearPageLimit, 30).length, 2, 'Section spacing must move a row to the next page instead of overflowing');
 console.log('OK: grouped pagination, continuation headings, order, page capacity and print height budget.');
 
+// Proxy sections repeat the same categories without merging into ordinary sections.
+for (const density of [20, 30]) {
+  const input = [
+    ...Array.from({ length: 31 }, (_, i) => ({ ...card(`Owned ${i}`, 'common', ['G']), proxy: false })),
+    { ...card('Token', 'common', []), deckToken: true },
+    ...Array.from({ length: 31 }, (_, i) => ({ ...card(`Proxy ${i}`, 'common', ['G']), proxy: true })),
+    { ...card('Proxy land', 'rare', [], 'Land'), proxy: true }
+  ];
+  const groupFor = c => cardGroup(c) + (c.proxy ? 7 : 0);
+  const pages = paginateCards(input, density, groupFor);
+  assert.deepEqual(pages.flatMap(page => page.flatMap(group => group.cards)), input);
+  const segments = pages.flat();
+  assert.deepEqual([...new Set(segments.map(group => group.group))], [0, 6, 7, 11]);
+  assert.equal(segments.find(group => group.group === 7).continued, false);
+  assert(segments.some(group => group.group === 7 && group.continued));
+  for (const page of pages) {
+    let height = 0;
+    for (const group of page) {
+      assert(group.cards.every(c => groupFor(c) === group.group));
+      const rows = Math.ceil(group.cards.length / (density === 30 ? 6 : 5));
+      height += (height ? 2 : 0) + 5 + rows * (density === 30 ? 51 : 61) + (rows - 1) * 1.5;
+    }
+    assert(height <= 268);
+  }
+  const adjacent = [input[0], input[32]];
+  assert.deepEqual(paginateCards(adjacent, density, groupFor)[0].map(group => group.group), [0, 7]);
+  assert.equal(paginateCards(adjacent, density)[0].length, 1);
+}
+console.log('OK: separate proxy categories, same-rarity boundary, continuation headings and A4 height at both densities.');
+
+
 
 (async () => {
   const cache = new Map();
