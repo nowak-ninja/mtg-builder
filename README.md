@@ -42,6 +42,8 @@ Karty oznaczone jako proxy zachowują kolor many w ramce i delikatnym tle. Wyró
 
 Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiadaną kartę jako proxy, także bez importowania kolekcji. Trafia ona na tę samą listę po prawej i otrzymuje czarno-biały obrazek. Można też odznaczyć proxy nadane automatycznie za brak w kolekcji. Ręczne zaznaczenia i odznaczenia mają pierwszeństwo przed kolekcją i są zapamiętywane po nazwie w przeglądarce, także po odświeżeniu, zmianie decklisty i ponownym imporcie kolekcji. Checkboxy nie są drukowane.
 
+Jeśli posiadana karta nadal jest proxy, sprawdź podpowiedź po najechaniu na jej ramkę: „Ręcznie oznaczone proxy” oznacza zapamiętane ręczne zaznaczenie. Odznacz **Proxy** przy tej karcie. Przy komunikacie „Brak w kolekcji - proxy” wczytaj aktualny CSV. Przecinki w nazwach ujętych w podwójne cudzysłowy (np. `"Yavimaya, Cradle of Growth"`) są częścią nazwy i nie rozdzielają jej podczas importu.
+
 ## Lista i sortowanie
 
 - Jedna karta w wierszu, nazwa lub liczba i nazwa: `1 Sol Ring`. Działa też sama nazwa `Sol Ring` oraz zapis `1x Sol Ring`. Angielskie nazwy Scryfall; dokładna nazwa, bez zgadywania literówek. Dopiski edycji i numeru w starszych eksportach są ignorowane.

@@ -276,6 +276,19 @@ for (const invalid of ['wrong,header\n1,Sol Ring', 'amount,card_name', 'amount,c
 assert.equal(Collection.index(Collection.parse('amount,card_name\n0,Sol Ring')).count, 0);
 console.log('OK: collection CSV quotes, commas, multiline fields, BOM, duplicates, zero counts, DFC names, edition-independent matching and invalid imports.');
 
+const yavimaya = { name: 'Yavimaya, Cradle of Growth', set: 'mh2' };
+const yavimayaSnapshot = Collection.parse('amount,card_name,set\r\n1,"Yavimaya, Cradle of Growth",M3C\r\n1,"Yavimaya, Cradle of Growth",AA3\r\n1,"Yavimaya, Cradle of Growth",MH2\r\n');
+assert.deepEqual(yavimayaSnapshot.names, [yavimaya.name]);
+const yavimayaCollection = Collection.index(JSON.parse(JSON.stringify(yavimayaSnapshot)));
+assert(yavimayaCollection.has(yavimaya));
+assert(!yavimayaCollection.has({ name: 'Yavimaya' }));
+assert(!yavimayaCollection.has({ name: 'Cradle of Growth' }));
+assert(!isProxy(yavimaya, yavimayaCollection, new Set()));
+assert(isProxy(yavimaya, yavimayaCollection, new Set([yavimaya.name])));
+assert(!isProxy(yavimaya, yavimayaCollection, new Set([yavimaya.name]), new Set([yavimaya.name])));
+console.log('OK: quoted Yavimaya name survives CSV import and storage; owned card is proxy only with a manual override.');
+
+
 const selectedProxies = new Set(['Sol Ring']);
 assert(isProxy({ name: 'Sol Ring' }, null, selectedProxies));
 assert(!isProxy({ name: 'Mystic Remora' }, null, selectedProxies));
