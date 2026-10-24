@@ -10,7 +10,7 @@ Otwórz `index.html` w przeglądarce. Do pobrania danych i obrazków potrzebne j
 
 Przycisk z ikoną w nagłówku przełącza kolejno motyw systemowy (półkole), jasny (słońce) i ciemny (księżyc). Wybór zapisuje się w `localStorage`; tryb systemowy na bieżąco reaguje na ustawienia systemu. Bez zapisanego wyboru używany jest tryb systemowy. Wydruk zawsze zachowuje jasne tło i kolory symboli many. Przy zablokowanej pamięci przycisk nadal działa do zamknięcia strony.
 
-Akcja **Wyczyść** obok **Wstaw przykład** usuwa decklistę również z pamięci przeglądarki, czyści arkusz, listę proxy, filtry i komunikaty dotyczące decka. Zachowuje bazę kart, kolekcję, ustawienia oraz zapamiętane ręczne oznaczenia proxy. Podczas pobierania jest czasowo nieaktywna.
+Akcja **Wyczyść** obok **Wstaw przykład** usuwa decklistę również z pamięci przeglądarki, czyści arkusz, listę proxy, filtry i komunikaty dotyczące decka. Usuwa również wszystkie zapamiętane ręczne zaznaczenia i odznaczenia proxy. Zachowuje bazę kart, kolekcję i ustawienia; po ponownym ułożeniu decka proxy wynikają z posiadanej kolekcji. Podczas pobierania jest czasowo nieaktywna.
 
 ## GitHub Pages
 
@@ -40,7 +40,7 @@ Dopasowanie ignoruje edycję, foil, wielkość liter i akcenty; uwzględnia nazw
 
 Karty oznaczone jako proxy zachowują kolor many w ramce i delikatnym tle. Wyróżnia je przerywany obrys (także na wydruku) oraz czarno-biały obrazek bez przygaszenia, przekreślenia i litery P, również na wydruku i w powiększonym podglądzie. Nazwa jest nad obrazkiem, a rzadkość pod nim. Linki i podgląd pozostają aktywne. Po prawej pojawia się lista do skopiowania w formacie `liczba nazwa`, z ilościami z decka; uwzględnia też ukryte basic landy. Na małym ekranie panel jest pod arkuszami. Lista dotyczy kart rozpoznanych przez aplikację - błędy nazw lub pobierania nadal wymagają sprawdzenia komunikatów. Import od razu aktualizuje gotowy arkusz.
 
-Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiadaną kartę jako proxy, także bez importowania kolekcji. Trafia ona na tę samą listę po prawej i otrzymuje czarno-biały obrazek. Można też odznaczyć proxy nadane automatycznie za brak w kolekcji. Ręczne zaznaczenia i odznaczenia mają pierwszeństwo przed kolekcją i są zapamiętywane po nazwie w przeglądarce, także po odświeżeniu, zmianie decklisty i ponownym imporcie kolekcji. Checkboxy nie są drukowane.
+Checkbox **Proxy** w prawym górnym rogu ramki pozwala ręcznie oznaczyć posiadaną kartę jako proxy, także bez importowania kolekcji. Trafia ona na tę samą listę po prawej i otrzymuje czarno-biały obrazek. Można też odznaczyć proxy nadane automatycznie za brak w kolekcji. Ręczne zaznaczenia i odznaczenia mają pierwszeństwo przed kolekcją i są zapamiętywane po nazwie w przeglądarce, także po odświeżeniu, zmianie decklisty i ponownym imporcie kolekcji. Akcja **Wyczyść** usuwa te ręczne decyzje również z pamięci przeglądarki. Checkboxy nie są drukowane.
 
 Jeśli posiadana karta nadal jest proxy, sprawdź podpowiedź po najechaniu na jej ramkę: „Ręcznie oznaczone proxy” oznacza zapamiętane ręczne zaznaczenie. Odznacz **Proxy** przy tej karcie. Przy komunikacie „Brak w kolekcji - proxy” wczytaj aktualny CSV. Przecinki w nazwach ujętych w podwójne cudzysłowy (np. `"Yavimaya, Cradle of Growth"`) są częścią nazwy i nie rozdzielają jej podczas importu.
 

@@ -483,7 +483,11 @@ function init() {
   $("clear-deck").addEventListener("click", async () => {
     if (busy) return;
     $("decklist").value = "";
-    try { localStorage.removeItem("mtg-builder-deck"); } catch { /* Clearing still works for this visit. */ }
+    manualProxies.clear();
+    nonProxies.clear();
+    for (const key of ["mtg-builder-deck", "mtg-builder-proxies", "mtg-builder-non-proxies"]) {
+      try { localStorage.removeItem(key); } catch { /* Clearing still works for this visit. */ }
+    }
     cards = [];
     tokens = [];
     problems = [];
