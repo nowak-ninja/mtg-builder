@@ -109,13 +109,23 @@
           <span class="empty-label">WKLEJ DECKLISTĘ, ABY ZACZĄĆ</span>
         </div>
       </section>
-      <aside id="missing-panel" class="missing-panel screen-only" hidden aria-labelledby="missing-heading">
-        <h2 id="missing-heading">Karty do proxy</h2>
-        <p class="hint" id="missing-summary"></p>
-        <label class="sr-only" for="missing-list">Karty do przygotowania jako proxy</label>
-        <textarea id="missing-list" readonly spellcheck="false"></textarea>
-        <button class="database-button" id="copy-missing" type="button">Kopiuj listę</button>
-        <p class="hint" id="copy-status" role="status" aria-live="polite">Czarno-biała karta z przerywaną ramką wymaga przygotowania jako proxy.</p>
+      <aside id="card-lists" class="card-lists screen-only" hidden aria-label="Listy kart do skopiowania">
+        <section id="missing-panel" class="missing-panel screen-only" hidden aria-labelledby="missing-heading">
+          <h2 id="missing-heading">Karty do proxy</h2>
+          <p class="hint" id="missing-summary"></p>
+          <label class="sr-only" for="missing-list">Karty do przygotowania jako proxy</label>
+          <textarea id="missing-list" readonly spellcheck="false"></textarea>
+          <button class="database-button" id="copy-missing" type="button">Kopiuj listę</button>
+          <p class="hint" id="copy-status" role="status" aria-live="polite">Czarno-biała karta z przerywaną ramką wymaga przygotowania jako proxy.</p>
+        </section>
+        <section id="token-panel" class="missing-panel" hidden aria-labelledby="token-heading">
+          <h2 id="token-heading">Tokeny</h2>
+          <p class="hint" id="token-summary"></p>
+          <label class="sr-only" for="token-list">Tokeny do decka</label>
+          <textarea id="token-list" readonly spellcheck="false"></textarea>
+          <button class="database-button" id="copy-tokens" type="button">Kopiuj listę</button>
+          <p class="hint" id="token-copy-status" role="status" aria-live="polite">Po jednej sztuce każdego rodzaju tokena. Lista dotyczy całego decka, niezależnie od filtrów; nie określa liczby potrzebnych sztuk.</p>
+        </section>
       </aside>
     </div>
   </main>

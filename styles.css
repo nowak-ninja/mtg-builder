@@ -76,15 +76,16 @@ ol { padding-left: 18px; font-size: 11px; line-height: 1.9; color: #667462; }
 .database-freshness[data-state="current"] { border-color: #32754a; color: #265d3b; }
 .database-freshness[data-state="outdated"] { border-color: #a87528; color: #77521e; background: #fff4df; }
 .local-database { border-bottom: 1px solid #e5e8df; margin-bottom: 20px; padding-bottom: 12px; }
+.card-lists { display: grid; gap: 24px; min-width: 0; }
 .missing-panel { min-width: 0; padding: 23px; background: #fffefa; border: 1px solid #dce1d7; border-radius: 12px; }
 .missing-panel textarea { min-height: 250px; margin-bottom: 10px; }
 @media (min-width: 1201px) {
-  main:has(.has-missing) { max-width: 1700px; }
-  .workspace.has-missing { grid-template-columns: 280px minmax(0, 1fr) 280px; gap: 24px; }
+  main:has(.has-lists) { max-width: 1700px; }
+  .workspace.has-lists { grid-template-columns: 280px minmax(0, 1fr) 280px; gap: 24px; }
 }
 @media (min-width: 721px) and (max-width: 1200px) {
-  .has-missing .editor { grid-row: 1 / span 2; }
-  .missing-panel { grid-column: 2; }
+  .has-lists .editor { grid-row: 1 / span 2; }
+  .card-lists { grid-column: 2; }
 }
 .database-button { width: 100%; border: 1px solid #afbfaa; border-radius: 6px; padding: 10px; background: #f7f8f2; color: #224e3c; font-size: 12px; }
 #cancel-db { margin-top: 8px; }

@@ -254,8 +254,6 @@ function init() {
   const cache = new Map();
   const rarityCache = new Map();
   const tokenCache = new Map();
-  const copyHint = [...$("copy-status").childNodes];
-  let copyStatusTimer;
   let manualProxies = new Set();
   try {
     const saved = JSON.parse(localStorage.getItem("mtg-builder-proxies") || "[]");
@@ -417,20 +415,28 @@ function init() {
     }
     render();
   });
-  $("copy-missing").addEventListener("click", async () => {
-    clearTimeout(copyStatusTimer);
-    try {
-      await navigator.clipboard.writeText($("missing-list").value);
-      $("copy-status").textContent = "Skopiowano listę.";
-      clearTimeout(copyStatusTimer);
-      copyStatusTimer = setTimeout(() => { $("copy-status").replaceChildren(...copyHint); }, 2000);
-    } catch {
-      clearTimeout(copyStatusTimer);
-      $("missing-list").focus();
-      $("missing-list").select();
-      $("copy-status").textContent = "Lista zaznaczona. Skopiuj ją przez Ctrl+C / ⌘C.";
-    }
-  });
+  function setupListCopy(buttonId, listId, statusId) {
+    const hint = [...$(statusId).childNodes];
+    let timer;
+    const reset = () => { clearTimeout(timer); $(statusId).replaceChildren(...hint); };
+    $(buttonId).addEventListener("click", async () => {
+      reset();
+      try {
+        await navigator.clipboard.writeText($(listId).value);
+        $(statusId).textContent = "Skopiowano listę.";
+        clearTimeout(timer);
+        timer = setTimeout(reset, 2000);
+      } catch {
+        clearTimeout(timer);
+        $(listId).focus();
+        $(listId).select();
+        $(statusId).textContent = "Lista zaznaczona. Skopiuj ją przez Ctrl+C / ⌘C.";
+      }
+    });
+    return reset;
+  }
+  const resetProxyCopy = setupListCopy("copy-missing", "missing-list", "copy-status");
+  const resetTokenCopy = setupListCopy("copy-tokens", "token-list", "token-copy-status");
   $("cancel-db").addEventListener("click", () => downloadController?.abort());
   $("download-db").addEventListener("click", async () => {
     if (busy) return;
@@ -540,11 +546,16 @@ function init() {
     $("filter-empty").textContent = emptyMessage;
     const missing = cards.filter(card => isProxy(card, collection, manualProxies, nonProxies)).sort(compareCards);
     $("missing-panel").hidden = !missing.length;
-    document.querySelector(".workspace").classList.toggle("has-missing", !!missing.length);
+    const listedTokens = $("tokens").checked ? tokens : [];
+    $("token-panel").hidden = !listedTokens.length;
+    $("token-list").value = listedTokens.map(card => `1 ${card.name}`).join("\n");
+    $("token-summary").replaceChildren("Liczba tokenów: ", make("strong", "", String(listedTokens.length)));
+    $("card-lists").hidden = !missing.length && !listedTokens.length;
+    document.querySelector(".workspace").classList.toggle("has-lists", !$("card-lists").hidden);
     $("missing-list").value = missing.map(card => `${card.quantity} ${card.name}`).join("\n");
     $("missing-summary").replaceChildren("Karty do proxy: ", make("strong", "", String(missing.length)), ". Uwzględnia ręczne zaznaczenia i odznaczenia oraz ukryte basic landy.");
-    clearTimeout(copyStatusTimer);
-    $("copy-status").replaceChildren(...copyHint);
+    resetProxyCopy();
+    resetTokenCopy();
     const perPage = Number($("density").value);
     const groupFor = card => cardGroup(card) + ($("proxy-last").checked && isProxy(card, collection, manualProxies, nonProxies) ? GROUP_LABELS.length : 0);
     if ($("proxy-last").checked) visible.sort((a, b) => groupFor(a) - groupFor(b) || compareCards(a, b));
@@ -682,7 +693,12 @@ function init() {
     $("sheets").replaceChildren();
     $("missing-panel").hidden = true;
     $("missing-list").value = "";
-    document.querySelector(".workspace").classList.remove("has-missing");
+    $("card-lists").hidden = true;
+    $("token-panel").hidden = true;
+    $("token-list").value = "";
+    resetProxyCopy();
+    resetTokenCopy();
+    document.querySelector(".workspace").classList.remove("has-lists");
     $("empty").hidden = true;
     $("filter-empty").hidden = true;
     $("filter-summary").textContent = "Wczytywanie decklisty…";

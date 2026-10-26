@@ -82,6 +82,8 @@ Lista pochodzi z powiązań `all_parts` / `component: token` udostępnianych prz
 
 Nowo pobrana baza zachowuje powiązania i rekordy tokenów, ale nie dopasowuje ich jako kart talii. W starszej bazie brakujące powiązania lub tokeny są uzupełniane paczkami do 75 identyfikatorów przez API i buforowane do odświeżenia strony. Najnowsze wydania tokenów są wybierane lokalnie, a przy brakujących danych wyszukiwane przez API paczkami po 10 tożsamości Oracle. **Aktualizuj bazę kart** zapisuje nowy format na kolejne wizyty. Wyłączona opcja nie pobiera danych tokenów. Błędy pobierania zgłaszamy jako niekompletny arkusz.
 
+Gdy wczytano tokeny, pod panelem **Karty do proxy** pojawia się osobny panel **Tokeny** z listą `1 nazwa` i przyciskiem **Kopiuj listę**. Jest dostępny także bez kart proxy. Obejmuje wszystkie wczytane rodzaje tokenów dla decka, niezależnie od filtrów; nie określa wymaganej liczby sztuk. Wyłączenie tokenów, wyczyszczenie decka lub wczytanie talii bez tokenów ukrywa panel. Oba panele list są pomijane na wydruku.
+
 Tokeny nie są sprawdzane w kolekcji ani dodawane do listy proxy: sama nazwa z CSV nie rozróżnia wariantów tokena ani tokena od zwykłej karty o tej samej nazwie (np. Timeless Witness).
 
 ## Drukowanie
