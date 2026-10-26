@@ -574,7 +574,7 @@ function init() {
       sheet.style.setProperty("--card-height", perPage === 30 ? "51mm" : "61mm");
       sheet.style.setProperty("--image-height", perPage === 30 ? "37mm" : "47mm");
       const heading = make("div", "sheet-heading");
-      heading.append(make("strong", "", `MTG Builder / Commander${filtering ? " · wybrane karty" : ""}`), make("span", "", `Strona ${page + 1}/${pages}`));
+      heading.append(make("strong", "", `MTG Builder${filtering ? " · wybrane karty" : ""}`), make("span", "", `Strona ${page + 1}/${pages}`));
       const groups = make("div", "sheet-groups");
       for (const segment of pageGroups[page]) {
         const section = make("section", "card-group");
